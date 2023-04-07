@@ -121,11 +121,11 @@ void generate_timelines(uint32_t magic, int max_NR_iters, float tol, int timelin
     float flt_max = 2.0f;
     float flt_min = 0.25f;
     uint32_t stored_magic = magic;
-    int current_timeline = 0;
+    int current_timeline = 1;
 
     srand(time(NULL));
-    printf("input,ref,approx,magic,iters,flipped,steps\n");
-    while (current_timeline < timelines) {
+    printf("input,ref,approx,magic,iters,flipped,steps, timeline\n");
+    while (current_timeline <= timelines) {
         create_array32(probabilities);
         iters = 0;
         steps = 0;
@@ -139,7 +139,7 @@ void generate_timelines(uint32_t magic, int max_NR_iters, float tol, int timelin
             iters = results.iterations_completed;
             flipped = mutate_and_advance(probabilities);
             magic = flip_chosen_bit(magic, flipped);
-            printf("%f,%f,%f,0x%08x,%d,%d,%d\n", input, ref, approx, magic, iters, flipped, steps);
+            printf("%f,%f,%f,0x%08x,%d,%d,%d,%d\n", input, ref, approx, magic, iters, flipped, steps, current_timeline);
         }
         current_timeline++;
         magic = stored_magic;
