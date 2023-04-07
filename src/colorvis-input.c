@@ -5,26 +5,29 @@
 #include <stddef.h>
 #include <time.h>
 
-
+// Convenience function for printing a 32-bit integer
 uint32_t flip_chosen_bit(uint32_t magic, uint16_t bit) {
     magic ^= 1 << (31 - bit);
     return magic;
 }
 
+// convenience function for a float in range.
 float rand_range(float min, float max) {
   float upper;
-  upper = ((float)rand() / (float)RAND_MAX) * (max - min);
+  upper = ((double)rand() / (double)RAND_MAX) * (max - min);
   return min + upper;
 }
 
-void create_array32(double array[32]) {
+// Functions to create probability arrays
+void create_prob_array(double array[32]) {
     int i;
     for (i = 0; i < 32; i++) {
         array[i] = ldexp(1, -(32 - i));
     }
 }
-
-void create_gapped_array32(double array[32], int location) {
+// Create a gapped one without a fuss. You could 
+// use a location > 31 to create a full array.
+void create_gapped_prob_array(double array[32], int location) {
     int i;
     for (i = 0; i < 32; i++) {
         if (i == location) {
@@ -35,6 +38,9 @@ void create_gapped_array32(double array[32], int location) {
     }
 }
 
+// We have individual probabilities in the array
+// but to select them we want an array of the
+// cumulative sum of the probabilities.
 void compute_cumulative_sum(double arr[], double sum[]) {
     sum[0] = arr[0];
     for (int i = 1; i < 32; i++) {
@@ -42,6 +48,8 @@ void compute_cumulative_sum(double arr[], double sum[]) {
     }
 }
 
+// Who knew you need to just use a for loop?
+// https://stackoverflow.com/a/16734848/1188479
 void multiply_array_by_scalar(double array[32], double scalar) {
     int i;
     for (i = 0; i < 32; i++) {
@@ -49,6 +57,7 @@ void multiply_array_by_scalar(double array[32], double scalar) {
     }
 }
 
+// Same deal.
 void add_32_arrays(double left[32], double right[32], double output[32]) {
     int i;
     for (i = 0; i < 32; i++) {
@@ -56,6 +65,7 @@ void add_32_arrays(double left[32], double right[32], double output[32]) {
     }
 }
 
+// Select a bit based on our probability array.
 int choose_bit(double array[32]) {
   double cumsum[32] = { 0 };
   compute_cumulative_sum(array, cumsum);
@@ -69,19 +79,26 @@ int choose_bit(double array[32]) {
   }
 }
 
+// Mutate the probability array and return the bit that was flipped.
 int mutate_and_advance(double array[32]) {
     double gapped[32];
     float chosen_prob;
 
+    // Choose a bit to flip
     int bit = choose_bit(array);
-    create_gapped_array32(gapped, bit);
+    // Create a gapped array
+    create_gapped_prob_array(gapped, bit);
+    // Multiply the gapped array by the chosen probability
     chosen_prob = array[bit];
     array[bit] = 0;
     multiply_array_by_scalar(gapped, chosen_prob);
+    // Add to the existing array, which has the 
+    // chosen bit set to zero.
     add_32_arrays(array, gapped, array);
     return bit;
 }
 
+// Could probably use this pattern more 
 typedef struct {
     int iterations_completed;
     float after_first_iter;
@@ -126,7 +143,7 @@ void generate_timelines(uint32_t magic, int max_NR_iters, float tol, int timelin
     srand(time(NULL));
     printf("input,ref,approx,magic,iters,flipped,steps, timeline\n");
     while (current_timeline <= timelines) {
-        create_array32(probabilities);
+        create_prob_array(probabilities);
         iters = 0;
         steps = 0;
 
@@ -149,7 +166,7 @@ void generate_timelines(uint32_t magic, int max_NR_iters, float tol, int timelin
 int main() {
     uint32_t magic = 0x5f37642f;
     int max_NR_iters = 100;
-    float tol = 0.0005f;
+    float tol = 0.005f;
     int timelines = 3;
 
     generate_timelines(magic, max_NR_iters, tol, timelines);
@@ -157,34 +174,37 @@ int main() {
     return 0;
 }
 
-/* The path of one mutation.
+/* The path of one timeline.
 
-input,ref,approx,magic,iters,flipped,steps
-1.413207,0.841196,0.840335,0x5f37642d,2,30,1
-0.300952,1.822852,1.822799,0x5f376429,1,29,2
-0.294844,1.841637,1.841635,0x5f376428,1,31,3
-1.957728,0.714700,0.714384,0x5f376420,1,28,4
-1.621368,0.785343,0.784069,0x5f376460,2,25,5
-1.013768,0.993186,0.991818,0x5f376440,2,26,6
-1.383140,0.850290,0.849557,0x5f374440,2,18,7
-1.449231,0.830675,0.829719,0x5f374040,2,21,8
-0.642930,1.247148,1.245047,0x5f374140,2,23,9
-1.582590,0.794906,0.793687,0x5f374940,2,20,10
-0.553910,1.343633,1.342302,0x5f374b40,2,22,11
-0.663844,1.227346,1.225289,0x5f375b40,2,19,12
-0.322370,1.761258,1.760658,0x5f375bc0,2,24,13
-0.583367,1.309270,1.307432,0x5f371bc0,2,17,14
-1.946364,0.716783,0.716486,0x5f331bc0,1,13,15
-1.037373,0.981822,0.979225,0x5f321bc0,2,15,16
-0.794343,1.122008,1.121187,0x5f301bc0,2,14,17
-0.473448,1.453328,1.452718,0x5f381bc0,2,12,18
-0.724341,1.174974,1.173008,0x5f181bc0,2,10,19
-0.656227,1.234448,1.187423,0x5f981bc0,3,8,20
-0.945643,1.028339,0.111591,0x5f881bc0,10,11,21
-1.496862,0.817352,0.270820,0x5b881bc0,7,5,22
-1.439251,0.833550,0.007873,0x5bc81bc0,16,9,23
-0.506685,1.404853,0.018242,0x5bc89bc0,15,16,24
-0.706834,1.189436,0.015942,0x5ac89bc0,15,7,25
+input,ref,approx,magic,iters,flipped,steps, timeline
+1.822221,0.740797,0.739979,0x5f37642e,1,31,1,1
+1.860121,0.733212,0.732534,0x5f37642c,1,30,2,1
+0.678317,1.214182,1.212159,0x5f376428,1,29,3,1
+0.382197,1.617545,1.615127,0x5f376420,1,28,4,1
+1.852858,0.734647,0.733942,0x5f376460,1,25,5,1
+1.496734,0.817387,0.816246,0x5f376440,1,26,6,1
+0.289847,1.857445,1.857429,0x5f376640,1,22,7,1
+0.270309,1.923399,1.922643,0x5f376740,1,23,8,1
+0.316764,1.776774,1.776343,0x5f372740,1,17,9,1
+1.150908,0.932137,0.932105,0x5f372340,1,21,10,1
+0.448202,1.493699,1.492024,0x5f370340,1,18,11,1
+1.805549,0.744210,0.743453,0x5f371340,1,19,12,1
+1.281693,0.883299,0.883077,0x5f371b40,1,20,13,1
+0.549303,1.349255,1.348111,0x5f371bc0,1,24,14,1
+1.196545,0.914188,0.914182,0x5f379bc0,1,16,15,1
+1.042972,0.979183,0.978399,0x5f369bc0,1,15,16,1
+1.539086,0.806062,0.805113,0x5f329bc0,1,13,17,1
+0.905405,1.050942,1.046552,0x5f309bc0,1,14,18,1
+0.865219,1.075070,1.070053,0x5f389bc0,2,12,19,1
+1.966911,0.713030,0.712462,0x5f189bc0,1,10,20,1
+1.701090,0.766719,0.749489,0x5f089bc0,2,11,21,1
+0.287600,1.864687,1.760429,0x5f08dbc0,3,17,22,1
+1.676161,0.772400,0.727864,0x5708dbc0,2,4,23,1
+0.555509,1.341697,0.000023,0x5788dbc0,31,8,24,1
+0.341032,1.712389,0.000063,0x5688dbc0,29,7,25,1
+1.129044,0.941119,0.000009,0x4688dbc0,32,3,26,1
+1.636066,0.781807,0.000000,0x4288dbc0,87,5,27,1
+0.885638,1.062605,0.000000,0x4088dbc0,100,6,28,1
 0.590039,1.301846,0.004328,0x58c89bc0,18,6,26
 0.957868,1.021756,0.000203,0x50c89bc0,25,4,27
 1.598911,0.790839,0.000000,0x40c89bc0,52,3,28
