@@ -11,6 +11,12 @@ uint32_t flip_chosen_bit(uint32_t magic, uint16_t bit) {
     return magic;
 }
 
+float rand_range(float min, float max) {
+  float upper;
+  upper = ((float)rand() / (float)RAND_MAX) * (max - min);
+  return min + upper;
+}
+
 void create_array32(double array[32]) {
     int i;
     for (i = 0; i < 32; i++) {
@@ -107,64 +113,81 @@ Q_rsqrt_results Q_rsqrt_iter(float number, uint32_t magic, float tol, int iters)
     return results;
 }
 
+void generate_timelines(uint32_t magic, int max_NR_iters, float tol, int timelines) {
+    double probabilities[32];
+    float ref, approx, input;
+    int iters, steps, flipped;
+  
+    float flt_max = 2.0f;
+    float flt_min = 0.25f;
+    uint32_t stored_magic = magic;
+    int current_timeline = 0;
+
+    srand(time(NULL));
+    printf("input,ref,approx,magic,iters,flipped,steps\n");
+    while (current_timeline < timelines) {
+        create_array32(probabilities);
+        iters = 0;
+        steps = 0;
+
+        while (iters < max_NR_iters) {
+            input = rand_range(flt_min, flt_max);
+            Q_rsqrt_results results = Q_rsqrt_iter(input, magic, tol, max_NR_iters);
+            steps++;
+            ref = 1 / sqrtf(input);
+            approx = results.after_first_iter;
+            iters = results.iterations_completed;
+            flipped = mutate_and_advance(probabilities);
+            magic = flip_chosen_bit(magic, flipped);
+            printf("%f,%f,%f,0x%08x,%d,%d,%d\n", input, ref, approx, magic, iters, flipped, steps);
+        }
+        current_timeline++;
+        magic = stored_magic;
+    }
+}
 
 int main() {
     uint32_t magic = 0x5f37642f;
-    double array[32];
-    int flipped;
-    srand(time(NULL));
+    int max_NR_iters = 100;
     float tol = 0.0005f;
-    float flt_max = 2.0f;
-    float flt_min = 0.25f;
-    float ref, approx, input;
-    int iter_limit = 100;
-    int iters = 0;
-    int steps = 0;
+    int timelines = 3;
 
-    create_array32(array);
-
-    printf("input,ref,approx,iters,flipped,steps\n");
-    while (iters < iter_limit) {
-      input = flt_min + ((float)rand() / (float)RAND_MAX) * (flt_max - flt_min);
-      Q_rsqrt_results results = Q_rsqrt_iter(input, magic, tol, iter_limit);
-      steps++;
-      ref = 1 / sqrtf(input);
-      approx = results.after_first_iter;
-      iters = results.iterations_completed;
-      flipped = mutate_and_advance(array);
-      magic = flip_chosen_bit(magic, flipped);
-      printf("%f,%f,%f,%d,%d,%d\n", input, ref, approx, iters, flipped, steps);
-    }
+    generate_timelines(magic, max_NR_iters, tol, timelines);
     
     return 0;
 }
 
 /* The path of one mutation.
 
-input,ref,approx,iters,flipped,steps
-1.154656,0.930623,0.930609,1,30,1
-1.995487,0.707906,0.707710,1,31,2
-1.561315,0.800303,0.799048,2,28,3
-1.823150,0.740609,0.739793,2,27,4
-1.561520,0.800251,0.798996,2,26,5
-1.310742,0.873457,0.873056,1,25,6
-1.802190,0.744903,0.744013,2,23,7
-0.485837,1.434678,1.433944,2,24,8
-0.768270,1.140888,1.140149,2,21,9
-0.651364,1.239048,1.236861,2,22,10
-0.586281,1.306012,1.304114,2,19,11
-1.700844,0.766775,0.765576,2,18,12
-0.553746,1.343832,1.342478,2,17,13
-1.718543,0.762816,0.761793,2,13,14
-0.892975,1.058231,1.054437,2,14,15
-1.190156,0.916638,0.915819,2,16,16
-0.992382,1.003831,0.999173,2,15,17
-1.478703,0.822355,0.822346,1,11,18
-0.419416,1.544107,1.528528,2,20,19
-1.514834,0.812489,0.805166,2,12,20
-0.411700,1.558509,1.554541,2,9,21
-1.147631,0.933467,0.761979,4,10,22
-1.328983,0.867442,0.854865,2,8,23
-1.627713,0.783811,-1.757129,100,18,24
+input,ref,approx,magic,iters,flipped,steps
+1.413207,0.841196,0.840335,0x5f37642d,2,30,1
+0.300952,1.822852,1.822799,0x5f376429,1,29,2
+0.294844,1.841637,1.841635,0x5f376428,1,31,3
+1.957728,0.714700,0.714384,0x5f376420,1,28,4
+1.621368,0.785343,0.784069,0x5f376460,2,25,5
+1.013768,0.993186,0.991818,0x5f376440,2,26,6
+1.383140,0.850290,0.849557,0x5f374440,2,18,7
+1.449231,0.830675,0.829719,0x5f374040,2,21,8
+0.642930,1.247148,1.245047,0x5f374140,2,23,9
+1.582590,0.794906,0.793687,0x5f374940,2,20,10
+0.553910,1.343633,1.342302,0x5f374b40,2,22,11
+0.663844,1.227346,1.225289,0x5f375b40,2,19,12
+0.322370,1.761258,1.760658,0x5f375bc0,2,24,13
+0.583367,1.309270,1.307432,0x5f371bc0,2,17,14
+1.946364,0.716783,0.716486,0x5f331bc0,1,13,15
+1.037373,0.981822,0.979225,0x5f321bc0,2,15,16
+0.794343,1.122008,1.121187,0x5f301bc0,2,14,17
+0.473448,1.453328,1.452718,0x5f381bc0,2,12,18
+0.724341,1.174974,1.173008,0x5f181bc0,2,10,19
+0.656227,1.234448,1.187423,0x5f981bc0,3,8,20
+0.945643,1.028339,0.111591,0x5f881bc0,10,11,21
+1.496862,0.817352,0.270820,0x5b881bc0,7,5,22
+1.439251,0.833550,0.007873,0x5bc81bc0,16,9,23
+0.506685,1.404853,0.018242,0x5bc89bc0,15,16,24
+0.706834,1.189436,0.015942,0x5ac89bc0,15,7,25
+0.590039,1.301846,0.004328,0x58c89bc0,18,6,26
+0.957868,1.021756,0.000203,0x50c89bc0,25,4,27
+1.598911,0.790839,0.000000,0x40c89bc0,52,3,28
+1.901019,0.725282,0.000000,0x40c8bbc0,100,18,29
 
 */
