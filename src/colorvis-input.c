@@ -115,7 +115,7 @@ Q_rsqrt_results Q_rsqrt_iter(float number, uint32_t magic, float tol, int iters)
     int counter = 0;
     float ref = 1 / sqrtf(number);
   
-    Q_rsqrt_results results = {0, 0, 0};
+    Q_rsqrt_results results = {0, 0};
 
     while (counter < iters) {
         conv.f *= 1.5F - (number * 0.5F * conv.f * conv.f);
@@ -167,7 +167,7 @@ int main() {
     uint32_t magic = 0x5f37642f;
     int max_NR_iters = 100;
     float tol = 0.005f;
-    int timelines = 3;
+    int timelines = 5000;
 
     generate_timelines(magic, max_NR_iters, tol, timelines);
     

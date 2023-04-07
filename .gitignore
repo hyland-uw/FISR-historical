@@ -4,3 +4,5 @@ Plots/.DS_Store
 R/montecarlo.R
 src/qinst
 .vscode/
+src/visinput
+src/magicplot.csv
