@@ -5,12 +5,6 @@
 #include <stddef.h>
 #include <time.h>
 
-// Convenience function for printing a 32-bit integer
-uint32_t flip_chosen_bit(uint32_t magic, uint16_t bit) {
-    magic ^= 1 << (31 - bit);
-    return magic;
-}
-
 // convenience function for a float in range.
 float rand_range(float min, float max) {
   float upper;
@@ -42,10 +36,9 @@ void create_gapped_prob_array(double array[32], int location) {
 // but to select them we want an array of the
 // cumulative sum of the probabilities.
 void compute_cumulative_sum(double arr[], double sum[]) {
-    sum[0] = arr[0];
-    for (int i = 1; i < 32; i++) {
-        sum[i] = sum[i - 1] + arr[i];
-    }
+  for (int i = 0; i < 32; i++) {
+    sum[i + 1] = sum[i] + arr[i];
+  }  
 }
 
 // Who knew you need to just use a for loop?
@@ -67,13 +60,12 @@ void add_32_arrays(double left[32], double right[32], double output[32]) {
 
 // Select a bit based on our probability array.
 int choose_bit(double array[32]) {
-  double cumsum[32] = { 0 };
+  double cumsum[33] = { 0 };
   compute_cumulative_sum(array, cumsum);
   // https://stackoverflow.com/a/6219525
-  double r = (double)rand() / (double)RAND_MAX;
-  int i = 0;
-  for (i = 0; i < 32; i++) {
-    if (r <= cumsum[i]) {
+  double r = (double)rand() / (double)((unsigned)RAND_MAX);
+  for (int i = 0; i < 32; i++) {
+    if (cumsum[i] <= r && r < cumsum[i + 1]) {
       return i;
     }
   }
@@ -155,7 +147,7 @@ void generate_timelines(uint32_t magic, int max_NR_iters, float tol, int timelin
             approx = results.after_first_iter;
             iters = results.iterations_completed;
             flipped = mutate_and_advance(probabilities);
-            magic = flip_chosen_bit(magic, flipped);
+            magic ^= 1 << (31 - flipped);
             printf("%f,%f,%f,0x%08x,%d,%d,%d,%d\n", input, ref, approx, magic, iters, flipped, steps, current_timeline);
         }
         current_timeline++;
@@ -165,9 +157,9 @@ void generate_timelines(uint32_t magic, int max_NR_iters, float tol, int timelin
 
 int main() {
     uint32_t magic = 0x5f37642f;
-    int max_NR_iters = 100;
-    float tol = 0.005f;
-    int timelines = 5000;
+    int max_NR_iters = 105;
+    float tol = 0.0075f;
+    int timelines = 3200;
 
     generate_timelines(magic, max_NR_iters, tol, timelines);
     
