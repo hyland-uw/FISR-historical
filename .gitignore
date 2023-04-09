@@ -1,9 +1,7 @@
 
 Plots/.DS_Store
 .DS_Store
-R/montecarlo.R
 src/qinst
-./vscode/settings.json
 src/visinput
-src/magicplot.csv
 src/many-tl
+R/montecarlo.R
