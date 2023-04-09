@@ -85,8 +85,38 @@ with(magicplot[magicplot[,"iters"] < 104, ],
      points(x = iters, y = abs(ref - approx)/input,
             pch = 20, alpha = 0.3))
 
+## another look, based on input. Not sure if the ones above the pink 
+## line are bugs or not. 
+ggplot(data = magicplot[magicplot[,"iters"] > 1 & magicplot[,"iters"] < 12, ],
+       aes(x = input, y = abs(ref - approx), colour = as.factor(iters))) + 
+  geom_point(shape = 20) + ylim(0,2.1) + 
+  guides(color = 'none')
+
+## Another look, this time at just steps which require many
+## iterations to converge but do so 
+ggplot(data = magicplot[magicplot[,"iters"] > 60 & magicplot[,"iters"] < 104, ],
+       aes(x = input, y = abs(ref - approx), colour = as.factor(iters))) + 
+  geom_point(shape = 20) + guides(color = 'none') + 
+  coord_polar(theta = 'x')
+
+## Here we have steps to convergence as plotted from the origin
+ggplot(data = magicplot,
+       aes(x = iters, y = timeline, colour = as.factor(steps))) + 
+  geom_point(alpha = 0.25, shape = 20) + guides(colour = 'none') + 
+  xlim(2, 103) + theme_void() + coord_polar(theta = 'y')
 
 
+## Here looking at only those which do not converge
 
+ggplot(data = magicplot[magicplot[,"iters"] > 104, ],
+       aes(x = input, y = abs(ref - approx), colour = as.factor(iters))) + 
+  geom_point(alpha = 0.7, shape = 20) + ylim(0,2.1) + 
+  guides(color = 'none') + 
+  coord_polar(theta = 'x')
 
-
+## A flower
+ggplot(data = magicplot[magicplot[,"iters"] < 100, ],
+       aes(x = steps, y = abs(ref - approx), group = timeline, colour = input)) + 
+  geom_line(alpha = 0.25) +  
+  coord_polar(theta = 'x',start = 2.15*pi/3) + 
+  guides(colour = 'none') + ylim(0, 3) + xlim(15, 30) + theme_void()
