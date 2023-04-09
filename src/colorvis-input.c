@@ -124,7 +124,7 @@ Q_rsqrt_results Q_rsqrt_iter(float number, uint32_t magic, float tol, int iters)
 
 void generate_timelines(uint32_t magic, int max_NR_iters, float tol, int timelines) {
     double probabilities[32];
-    float ref, approx, input;
+    float ref, error, input;
     int iters, steps, flipped;
   
     float flt_max = 8.0f;
@@ -133,7 +133,7 @@ void generate_timelines(uint32_t magic, int max_NR_iters, float tol, int timelin
     int current_timeline = 1;
 
     srand(time(NULL));
-    printf("input,ref,approx,magic,iters,flipped,steps, timeline\n");
+    printf("input,error,magic,iters,flipped,steps, timeline\n");
     while (current_timeline <= timelines) {
         create_prob_array(probabilities);
         iters = 0;
@@ -144,11 +144,11 @@ void generate_timelines(uint32_t magic, int max_NR_iters, float tol, int timelin
             Q_rsqrt_results results = Q_rsqrt_iter(input, magic, tol, max_NR_iters);
             steps++;
             ref = 1 / sqrtf(input);
-            approx = results.after_first_iter;
+            error = fabs(ref - results.after_first_iter);
             iters = results.iterations_completed;
             flipped = mutate_and_advance(probabilities);
             magic ^= 1 << (31 - flipped);
-            printf("%f,%f,%f,0x%08x,%d,%d,%d,%d\n", input, ref, approx, magic, iters, flipped, steps, current_timeline);
+            printf("%f,%f,0x%08x,%d,%d,%d,%d\n", input, error, magic, iters, flipped, steps, current_timeline);
         }
         current_timeline++;
         magic = stored_magic;

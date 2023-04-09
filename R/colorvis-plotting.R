@@ -1,12 +1,10 @@
 library(scales)
 library(ggplot2)
 
-
-
 ## Errors which converge, relative to input
 ## Note especially the patterns among steps which don't converge
 ggplot(data = magicplot,
-       aes(x = input, y = abs(ref - approx), colour = as.factor(iters))) + 
+       aes(x = input, y = error, colour = as.factor(iters))) + 
  geom_point(alpha = 0.3, shape = 20) + 
  guides(color = 'none') + ylim(0, 2)
 
@@ -14,7 +12,7 @@ ggplot(data = magicplot,
 ## Not very edifying as many of the input which don't converge
 ## are very large
 ggplot(data = magicplot[magicplot[,"iters"] > 104, ],
-       aes(x = input, y = abs(ref - approx), colour = as.factor(iters))) + 
+       aes(x = input, y = error, colour = as.factor(iters))) + 
   geom_point(alpha = 0.7, shape = 20) + guides(color = 'none')
 
 ## An artsy look at the same distribution
@@ -25,7 +23,7 @@ ggplot(data = magicplot,
 
 ## Follow paths for given timelines
 ggplot(data = magicplot,
-       aes(x = steps, y = iters, group = timeline, alpha = abs(ref - approx))) + 
+       aes(x = steps, y = iters, group = timeline, alpha =error)) + 
   geom_line() + ylim(0,99) + scale_alpha(range = c(0.02, 0.05)) + 
   guides(alpha = 'none')
 ## same plot with no alpha and geom_path()
@@ -83,23 +81,23 @@ plot(with(magicplot, table(steps, flipped)))
 ## Base R plot of range in error by iterations, excluding
 ## steps which don't converge.
 plot(1, type="n", xlab="", ylab="", xlim=c(0, 105), ylim = c(0, 10))
-lines(aggregate(abs(ref - approx)/input ~ iters, data = magicplot, min), col = "blue")
-lines(aggregate(abs(ref - approx)/input ~ iters, data = magicplot, max), col = "blue")
+lines(aggregate(error/input ~ iters, data = magicplot, min), col = "blue")
+lines(aggregate(error/input ~ iters, data = magicplot, max), col = "blue")
 with(magicplot[magicplot[,"iters"] < 104, ],
-     points(x = iters, y = abs(ref - approx)/input,
+     points(x = iters, y = error/input,
             pch = 20, alpha = 0.3))
 
 ## another look, based on input. Not sure if the ones above the pink 
 ## line are bugs or not. 
 ggplot(data = magicplot[magicplot[,"iters"] > 1 & magicplot[,"iters"] < 12, ],
-       aes(x = input, y = abs(ref - approx), colour = as.factor(iters))) + 
+       aes(x = input, y = error, colour = as.factor(iters))) + 
   geom_point(shape = 20) + ylim(0,2.1) + 
   guides(color = 'none')
 
 ## Another look, this time at just steps which require many
 ## iterations to converge but do so 
 ggplot(data = magicplot[magicplot[,"iters"] > 60 & magicplot[,"iters"] < 104, ],
-       aes(x = input, y = abs(ref - approx), colour = as.factor(iters))) + 
+       aes(x = input, y = error, colour = as.factor(iters))) + 
   geom_point(shape = 20) + guides(color = 'none') + 
   coord_polar(theta = 'x')
 
@@ -113,14 +111,14 @@ ggplot(data = magicplot,
 ## Here looking at only those which do not converge
 
 ggplot(data = magicplot[magicplot[,"iters"] > 104, ],
-       aes(x = input, y = abs(ref - approx), colour = as.factor(iters))) + 
+       aes(x = input, y = error, colour = as.factor(iters))) + 
   geom_point(alpha = 0.7, shape = 20) + ylim(0,2.1) + 
   guides(color = 'none') + 
   coord_polar(theta = 'x')
 
 ## A flower
 ggplot(data = magicplot[magicplot[,"iters"] < 100, ],
-       aes(x = steps, y = abs(ref - approx), group = timeline, colour = input)) + 
+       aes(x = steps, y = error, group = timeline, colour = input)) + 
   geom_line(alpha = 0.25) +  
   coord_polar(theta = 'x',start = 2.15*pi/3) + 
   guides(colour = 'none') + ylim(0, 3) + xlim(15, 30) + theme_void()
