@@ -58,6 +58,34 @@ void add_32_arrays(double left[32], double right[32], double output[32]) {
     }
 }
 
+/// These here help us draw a tail to tip path for mutations
+
+// Map a float to radians.
+float map_to_radians(float input, float min, float max) {
+    float scale;
+    float output_range_start = 0.0;
+    float output_range_end = 2 * M_PI;
+
+    scale = (output_range_end - output_range_start) / (max - min);
+    return (input - min) * scale + output_range_start;
+}
+
+// Define the coordinate struct
+typedef struct {
+    float x;
+    float y;
+} Cartesian;
+
+// Function to convert polar coordinates to Cartesian coordinates
+Cartesian polar_to_cartesian(float theta, float r) {
+    Cartesian coords = {0, 0};
+    coords.x = r * cos(theta);
+    coords.y = r * sin(theta);
+
+    return coords;
+}
+
+
 // Select a bit based on our probability array.
 int choose_bit(double array[32]) {
   double cumsum[33] = { 0 };
@@ -122,13 +150,11 @@ Q_rsqrt_results Q_rsqrt_iter(float number, uint32_t magic, float tol, int iters)
     return results;
 }
 
-void generate_timelines(uint32_t magic, int max_NR_iters, float tol, int timelines) {
+void generate_timelines(uint32_t magic, int max_NR_iters, float tol, int timelines, float flt_min, float flt_max) {
     double probabilities[32];
     float ref, error, input;
     int iters, steps, flipped;
   
-    float flt_max = 8.0f;
-    float flt_min = 0.25f;
     uint32_t stored_magic = magic;
     int current_timeline = 1;
 
@@ -156,50 +182,57 @@ void generate_timelines(uint32_t magic, int max_NR_iters, float tol, int timelin
 }
 
 int main() {
+    // Generation parameters
     uint32_t magic = 0x5f37642f;
+    // It appears that for > 105 iterations,
+    // the algorithm is unlikely to converge.
     int max_NR_iters = 105;
+    // Need to play around with this
+    // Might need to pick a power of 2
     float tol = 0.0075f;
+    // More than this seems to be unhelpful
     int timelines = 4500;
+    // This is (arguably) one period of the 
+    // approximation--from 2^-1 to 2^1
+    // Any other crossing of an even binary power of 2 will do
+    float flt_min = 0.5f;
+    float flt_max = 2.0f;
 
-    generate_timelines(magic, max_NR_iters, tol, timelines);
+    generate_timelines(magic, max_NR_iters, tol, timelines, flt_min, flt_max);
     
     return 0;
 }
 
 /* The path of one timeline.
 
-input,ref,approx,magic,iters,flipped,steps, timeline
-1.822221,0.740797,0.739979,0x5f37642e,1,31,1,1
-1.860121,0.733212,0.732534,0x5f37642c,1,30,2,1
-0.678317,1.214182,1.212159,0x5f376428,1,29,3,1
-0.382197,1.617545,1.615127,0x5f376420,1,28,4,1
-1.852858,0.734647,0.733942,0x5f376460,1,25,5,1
-1.496734,0.817387,0.816246,0x5f376440,1,26,6,1
-0.289847,1.857445,1.857429,0x5f376640,1,22,7,1
-0.270309,1.923399,1.922643,0x5f376740,1,23,8,1
-0.316764,1.776774,1.776343,0x5f372740,1,17,9,1
-1.150908,0.932137,0.932105,0x5f372340,1,21,10,1
-0.448202,1.493699,1.492024,0x5f370340,1,18,11,1
-1.805549,0.744210,0.743453,0x5f371340,1,19,12,1
-1.281693,0.883299,0.883077,0x5f371b40,1,20,13,1
-0.549303,1.349255,1.348111,0x5f371bc0,1,24,14,1
-1.196545,0.914188,0.914182,0x5f379bc0,1,16,15,1
-1.042972,0.979183,0.978399,0x5f369bc0,1,15,16,1
-1.539086,0.806062,0.805113,0x5f329bc0,1,13,17,1
-0.905405,1.050942,1.046552,0x5f309bc0,1,14,18,1
-0.865219,1.075070,1.070053,0x5f389bc0,2,12,19,1
-1.966911,0.713030,0.712462,0x5f189bc0,1,10,20,1
-1.701090,0.766719,0.749489,0x5f089bc0,2,11,21,1
-0.287600,1.864687,1.760429,0x5f08dbc0,3,17,22,1
-1.676161,0.772400,0.727864,0x5708dbc0,2,4,23,1
-0.555509,1.341697,0.000023,0x5788dbc0,31,8,24,1
-0.341032,1.712389,0.000063,0x5688dbc0,29,7,25,1
-1.129044,0.941119,0.000009,0x4688dbc0,32,3,26,1
-1.636066,0.781807,0.000000,0x4288dbc0,87,5,27,1
-0.885638,1.062605,0.000000,0x4088dbc0,100,6,28,1
-0.590039,1.301846,0.004328,0x58c89bc0,18,6,26
-0.957868,1.021756,0.000203,0x50c89bc0,25,4,27
-1.598911,0.790839,0.000000,0x40c89bc0,52,3,28
-1.901019,0.725282,0.000000,0x40c8bbc0,100,18,29
+input,error,magic,iters,flipped,steps, timeline
+7.845337,0.000152,0x5f37642e,1,31,1,1
+6.176630,0.000617,0x5f37642c,1,30,2,1
+4.926030,0.000045,0x5f376424,1,28,3,1
+4.899565,0.000036,0x5f376404,1,26,4,1
+7.123745,0.000480,0x5f376484,1,24,5,1
+7.645338,0.000242,0x5f376494,1,27,6,1
+3.673761,0.000605,0x5f3764d4,1,25,7,1
+6.646753,0.000621,0x5f3765d4,1,23,8,1
+0.633826,0.002222,0x5f3761d4,1,21,9,1
+4.658135,0.000002,0x5f3763d4,1,22,10,1
+7.695400,0.000218,0x5f3773d4,1,19,11,1
+2.325683,0.000940,0x5f377bd4,1,20,12,1
+7.049764,0.000526,0x5f375bd4,1,18,13,1
+3.304683,0.000026,0x5f365bd4,1,15,14,1
+4.711877,0.000010,0x5f361bd4,1,17,15,1
+4.929669,0.000005,0x5f369bd4,1,16,16,1
+4.342799,0.000247,0x5f329bd4,1,13,17,1
+3.874860,0.002014,0x5f229bd4,1,11,18,1
+7.963129,0.005192,0x5f629bd4,1,9,19,1
+3.957974,0.061841,0x5f6a9bd4,3,12,20,1
+2.166996,0.114219,0x5f4a9bd4,3,10,21,1
+5.024805,0.006292,0x5f489bd4,1,14,22,1
+7.318483,0.007966,0x5fc89bd4,2,8,23,1
+0.985052,2.754919,0x5fc88bd4,17,19,24,1
+6.480330,1.271065,0x5dc88bd4,14,6,25,1
+7.099020,0.297111,0x5cc88bd4,7,7,26,1
+7.818248,0.339020,0x7cc88bd4,10,2,27,1
+1.464925,inf,0x74c88bd4,105,4,28,1
 
 */

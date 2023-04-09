@@ -1,6 +1,9 @@
 library(scales)
 library(ggplot2)
 
+## assumes that we have:
+## magicplot and itercount
+
 ## Errors which converge, relative to input
 ## Note especially the patterns among steps which don't converge
 ggplot(data = magicplot,
@@ -82,10 +85,9 @@ plot(with(magicplot, table(steps, flipped)))
 ## steps which don't converge.
 plot(1, type="n", xlab="", ylab="", xlim=c(0, 105), ylim = c(0, 10))
 lines(aggregate(error/input ~ iters, data = magicplot, min), col = "blue")
-lines(aggregate(error/input ~ iters, data = magicplot, max), col = "blue")
 with(magicplot[magicplot[,"iters"] < 104, ],
      points(x = iters, y = error/input,
-            pch = 20, alpha = 0.3))
+            pch = 20))
 
 ## another look, based on input. Not sure if the ones above the pink 
 ## line are bugs or not. 
@@ -93,6 +95,28 @@ ggplot(data = magicplot[magicplot[,"iters"] > 1 & magicplot[,"iters"] < 12, ],
        aes(x = input, y = error, colour = as.factor(iters))) + 
   geom_point(shape = 20) + ylim(0,2.1) + 
   guides(color = 'none')
+
+## input and error with hexbin
+
+ggplot(data = itercount,
+       aes(x = input, y = error)) + 
+  geom_hex(bins = 700) + ylim(0.6,8) + 
+  guides(fill = 'none') + 
+  ggtitle("Points which converged only after > 20 iterations")
+
+
+## artistic version of the above
+wideplot <- ggplot(data = magicplot[(magicplot[, "input"] < 0.99 | magicplot[, "error"] < 0.99) & magicplot[,"iters"] > 1 & magicplot[,"iters"] < 12, ],
+                   aes(x = input, y = error, colour = as.factor(iters))) + 
+  geom_line(aes(group = timeline), alpha = 0.1) + coord_polar() +
+  guides(color = 'none') + theme_void()
+## see https://stackoverflow.com/a/53160799 for why
+## cartesian coord plots can just use internal limits
+widebuild <- ggplot_build(wideplot)
+widebuild[["layout"]][["panel_params"]][[1]][["r.range"]][2] <- 0.33
+wideplot <- ggplot_gtable(widebuild)
+plot(wideplot)
+rm(widebuild, wideplot)
 
 ## Another look, this time at just steps which require many
 ## iterations to converge but do so 
