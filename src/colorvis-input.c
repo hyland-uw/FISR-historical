@@ -127,7 +127,7 @@ void generate_timelines(uint32_t magic, int max_NR_iters, float tol, int timelin
     float ref, approx, input;
     int iters, steps, flipped;
   
-    float flt_max = 2.0f;
+    float flt_max = 8.0f;
     float flt_min = 0.25f;
     uint32_t stored_magic = magic;
     int current_timeline = 1;
@@ -159,7 +159,7 @@ int main() {
     uint32_t magic = 0x5f37642f;
     int max_NR_iters = 105;
     float tol = 0.0075f;
-    int timelines = 3200;
+    int timelines = 4500;
 
     generate_timelines(magic, max_NR_iters, tol, timelines);
     
