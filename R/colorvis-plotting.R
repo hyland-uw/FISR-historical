@@ -32,7 +32,11 @@ ggplot(data = magicplot,
 ggplot(data = magicplot,
        aes(x = steps, y = iters, group = timeline)) + 
   geom_path()
-
+## Same plot but placed on a polar coordinate system for fun
+ggplot(data = magicplot, aes(x = steps, y = iters, group = timeline)) + 
+  geom_path(alpha = 0.25) + 
+  theme_void() +
+  coord_polar()
 
 # Mutation path testing
 ggplot(data = magicplot,
