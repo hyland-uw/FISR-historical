@@ -104,6 +104,15 @@ ggplot(data = itercount,
   guides(fill = 'none') + 
   ggtitle("Points which converged only after > 20 iterations")
 
+## Range of errors where convergence is hard but happens
+## > 20 iterations
+
+# These are chosent to capture most of the variation in high
+# iteration convergence.
+ggplot(data = itercount, aes(x = error, fill = as.factor(iters))) + 
+  geom_histogram(bins = 60) + 
+  xlim(0.71, 1.25) + guides(fill = 'none')
+
 
 ## artistic version of the above
 wideplot <- ggplot(data = magicplot[(magicplot[, "input"] < 0.99 | magicplot[, "error"] < 0.99) & magicplot[,"iters"] > 1 & magicplot[,"iters"] < 12, ],
