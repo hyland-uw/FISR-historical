@@ -189,9 +189,9 @@ int main() {
     int max_NR_iters = 105;
     // Need to play around with this
     // Might need to pick a power of 2
-    float tol = 0.0075f;
+    float tol = 0.0125f;
     // More than this seems to be unhelpful
-    int timelines = 4500;
+    int timelines = 7500;
     // This is (arguably) one period of the 
     // approximation--from 2^-1 to 2^1
     // Any other crossing of an even binary power of 2 will do

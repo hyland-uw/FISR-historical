@@ -175,7 +175,7 @@ void generate_timelines(uint32_t magic, int max_NR_iters, float tol, int timelin
             flipped = mutate_and_advance(probabilities);
             magic ^= 1 << (31 - flipped);
             // Only capture paths that have many iterations
-            if (iters > 20) {
+            if (iters > 2) {
                 printf("%f,%f,%d\n", input, error, iters);
             }
         }
@@ -189,12 +189,12 @@ int main() {
     uint32_t magic = 0x5f37642f;
     // It appears that for > 105 iterations,
     // the algorithm is unlikely to converge.
-    int max_NR_iters = 105;
+    int max_NR_iters = 110;
     // Need to play around with this
     // Might need to pick a power of 2
-    float tol = 0.0075f;
+    float tol = 0.0125f;
     // need a lot to capture the tail (copilot suggested that name)
-    int timelines = 1400000;
+    int timelines = 800000;
     // This is (arguably) one period of the 
     // approximation--from 2^-1 to 2^1
     // Any other crossing of an even binary power of 2 will do
