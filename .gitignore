@@ -1,8 +1,7 @@
 
-Plots/.DS_Store
 .DS_Store
+.gitattributes
 src/qinst
 src/visinput
 src/many-tl
 R/montecarlo.R
-.gitattributes
