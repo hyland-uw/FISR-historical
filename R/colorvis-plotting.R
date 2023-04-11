@@ -155,3 +155,25 @@ ggplot(data = magicplot[magicplot[,"iters"] < 100, ],
   geom_line(alpha = 0.25) +  
   coord_polar(theta = 'x',start = 2.15*pi/3) + 
   guides(colour = 'none') + ylim(0, 3) + xlim(15, 30) + theme_void()
+
+## A colored flower
+
+ggplot(data = magicplot[magicplot[,"iters"] < 100, ],
+       aes(x = steps,
+           y = error^2,
+           group = timeline,
+           colour = as.factor(iters))) + 
+  geom_line(alpha = 0.05) +  
+  coord_polar(theta = 'x',start = 2.15*pi/3) + 
+  guides(colour = 'none') + ylim(0, 3) + xlim(15, 30) + 
+  theme_void() + theme(plot.background = element_rect(fill = "gainsboro"))
+
+## Something that looks like a parallel coordinates plot
+ggplot(data = magicplot[magicplot[,"iters"] < 100, ],
+       aes(x = iters,
+           y = error^2,
+           group = timeline,
+           colour = as.factor(steps))) + 
+  geom_line(alpha = 0.25) +   
+  guides(colour = 'none') + ylim(0, 3) + xlim(15, 30) + 
+  theme_void() + theme(plot.background = element_rect(fill = "gainsboro"))
