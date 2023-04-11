@@ -46,6 +46,9 @@ ggplot(data = magicplot,
   guides(fill = "none") + 
   theme_void() + scale_fill_hue(h = c(170, 360))
 
+## testing using base plot
+plot(with(magicplot, table(steps, flipped)))
+
 ## Similar plot using iteration count and steps
 ggplot(data = magicplot,
        aes(x = steps, fill = as.factor(iters))) + 
