@@ -81,6 +81,9 @@ ggplot(data = magicplot,
   guides(fill = "none") + 
   theme_void() + xlim(15, 31)
 
+## Histogram of number of steps taken before converging
+hist(aggregate(steps ~ timeline, data = magicplot, max)[, 2])
+
 ## plot of bit flips by steps
 plot(with(magicplot, table(steps, flipped)))
 
@@ -177,3 +180,12 @@ ggplot(data = magicplot[magicplot[,"iters"] < 100, ],
   geom_line(alpha = 0.25) +   
   guides(colour = 'none') + ylim(0, 3) + xlim(15, 30) + 
   theme_void() + theme(plot.background = element_rect(fill = "gainsboro"))
+
+## really interesting plot
+
+ggplot(data = magicplot[magicplot[,"iters"] < 100, ],
+       aes(x = iters,
+           y = error^2,
+           colour = input)) + 
+  geom_point(alpha = 0.35, shape = 20) +   
+  guides(colour = 'none') + ylim(0, 2) + xlim(1, 90)
