@@ -32,6 +32,16 @@ float uniformDraw (float low, float high) {
     return (high - low) * Urand + low;
 }
 
+//Draw for a reciprocal distribution https://en.wikipedia.org/wiki/Reciprocal_distribution
+//not used now but was investigated to clear up some plotting issues
+float reciprocalDraw (float low, float high) {
+    double x;
+    float Urand;
+    x = (double)rand() / (double)((unsigned)RAND_MAX + 1);
+    Urand = (float) 1 - x;
+    //Inverse CDF of the reciprocal distribution
+    return powf(high/low, x) * low;
+}
 
 
 // accepts a double and splits it, like KahanNg
