@@ -6,65 +6,6 @@ typedef struct {
     float after_first_iter;
 } Q_rsqrt_results;
 
-Q_rsqrt_results Q_rsqrt_iter(float number, uint32_t magic, float tol, int iters) {
-    union {
-        float    f;
-        uint32_t i;
-    } conv = { .f = number };
-
-    conv.i  = magic - (conv.i >> 1);
-
-    int counter = 0;
-    float ref = 1 / sqrtf(number);
-  
-    Q_rsqrt_results results = {0, 0};
-
-    while (counter < iters) {
-        conv.f *= 1.5F - (number * 0.5F * conv.f * conv.f);
-        results.iterations_completed = ++counter;
-        if (counter == 1) {
-          results.after_first_iter = conv.f;
-        }  
-        if (fabsf(ref - conv.f) < tol) {
-            break;
-        }
-    }
-    return results;
-}
-
-void generate_timelines(uint32_t magic, int max_NR_iters, float tol, int timelines, float flt_min, float flt_max) {
-    double probabilities[32];
-    float ref, error, input;
-    int iters, steps, flipped;
-    float curr_x, curr_y;
-    uint32_t stored_magic = magic;
-    int current_timeline = 1;
-
-    srand(time(NULL));
-    printf("input,error,magic,iters,flipped,steps, timeline\n");
-    while (current_timeline <= timelines) {
-        create_prob_array(probabilities);
-        iters = 0;
-        steps = 0;
-        curr_x = 0;
-        curr_y = 0;
-
-
-        while (iters < max_NR_iters) {
-            input = rand_range(flt_min, flt_max);
-            Q_rsqrt_results results = Q_rsqrt_iter(input, magic, tol, max_NR_iters);
-            steps++;
-            ref = 1 / sqrtf(input);
-            error = fabs(ref - results.after_first_iter);
-            iters = results.iterations_completed;
-            flipped = mutate_and_advance(probabilities);
-            magic ^= 1 << (31 - flipped);
-            printf("%f,%f,0x%08x,%d,%d,%d,%d\n", input, error, magic, iters, flipped, steps, current_timeline);
-        }
-        current_timeline++;
-        magic = stored_magic;
-    }
-}
 
 int main() {
     // Generation parameters

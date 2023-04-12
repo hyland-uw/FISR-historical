@@ -81,8 +81,11 @@ ggplot(data = magicplot,
   guides(fill = "none") + 
   theme_void() + xlim(15, 31)
 
-## Histogram of number of steps taken before converging
-hist(aggregate(steps ~ timeline, data = magicplot, max)[, 2])
+## Histogram of number of steps taken in mutation timelines
+## all have more than 10 steps, none more than 30
+hist(aggregate(steps ~ timeline,
+               data = magicplot[magicplot[, "iters"] < 100, ],
+               max)[, 2])
 
 ## plot of bit flips by steps
 plot(with(magicplot, table(steps, flipped)))

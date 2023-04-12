@@ -1,5 +1,13 @@
 #include "utility.h"
 
+// Could probably use this pattern more
+typedef struct {
+    int iterations_completed;
+    float after_first_iter;
+} Q_rsqrt_results;
+
+
+
 int main() {
     // Generation parameters
     uint32_t magic = 0x5f37642f;

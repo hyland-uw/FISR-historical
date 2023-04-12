@@ -7,90 +7,41 @@
 
 /// utility functions for the c code
 
-// convenience function for a float in range.
-float rand_range(float min, float max) {
-  float upper;
-  upper = ((double)rand() / (double)RAND_MAX) * (max - min);
-  return min + upper;
+// Casting functions using pointers
+// Not memory safe but used because that's how it was
+// done in the examples we are following
+// make sure to compile with -O0 to prevent the compiler from 
+// optimizing out the pointer arithmetic
+uint64_t AsIntegerDouble(double df) {
+    return * ( uint64_t * ) &df;
+}
+double AsDouble64BitInt(int64_t i) {
+    return * ( double * ) &i;
+}
+int AsInteger(float f) {
+    return * ( int * ) &f;
 }
 
-// Functions to create probability arrays
-void create_prob_array(double array[32]) {
-    int i;
-    for (i = 0; i < 32; i++) {
-        array[i] = ldexp(1, -(32 - i));
-    }
-}
-// Create a gapped one without a fuss. You could 
-// use a location > 31 to create a full array.
-void create_gapped_prob_array(double array[32], int location) {
-    int i;
-    for (i = 0; i < 32; i++) {
-        if (i == location) {
-            array[i] = 0;
-        } else {
-            array[i] = ldexp(1, -(32 - i));
-        }
-    }
+float AsFloat(int i) {
+    return * ( float * ) &i;
 }
 
-// We have individual probabilities in the array
-// but to select them we want an array of the
-// cumulative sum of the probabilities.
-void compute_cumulative_sum(double arr[], double sum[]) {
-  for (int i = 0; i < 32; i++) {
-    sum[i + 1] = sum[i] + arr[i];
-  }  
+// Smooth generation of random numbers (by dividing doubles then casting)
+float uniformDraw (float low, float high) {
+    double x;
+    float Urand;
+    x = (double)rand() / (double)((unsigned)RAND_MAX + 1);
+    Urand = (float) x;
+    return (high - low) * Urand + low;
 }
 
-// Who knew you need to just use a for loop?
-// https://stackoverflow.com/a/16734848/1188479
-void multiply_array_by_scalar(double array[32], double scalar) {
-    int i;
-    for (i = 0; i < 32; i++) {
-        array[i] *= scalar;
-    }
-}
-
-// Same deal.
-void add_32_arrays(double left[32], double right[32], double output[32]) {
-    int i;
-    for (i = 0; i < 32; i++) {
-        output[i] += left[i] + right[i];
-    }
-}
-
-
-
-
-// Select a bit based on our probability array.
-int choose_bit(double array[32]) {
-  double cumsum[33] = { 0 };
-  compute_cumulative_sum(array, cumsum);
-  // https://stackoverflow.com/a/6219525
-  double r = (double)rand() / (double)((unsigned)RAND_MAX);
-  for (int i = 0; i < 32; i++) {
-    if (cumsum[i] <= r && r < cumsum[i + 1]) {
-      return i;
-    }
-  }
-}
-
-// Mutate the probability array and return the bit that was flipped.
-int mutate_and_advance(double array[32]) {
-    double gapped[32];
-    float chosen_prob;
-
-    // Choose a bit to flip
-    int bit = choose_bit(array);
-    // Create a gapped array
-    create_gapped_prob_array(gapped, bit);
-    // Multiply the gapped array by the chosen probability
-    chosen_prob = array[bit];
-    array[bit] = 0;
-    multiply_array_by_scalar(gapped, chosen_prob);
-    // Add to the existing array, which has the 
-    // chosen bit set to zero.
-    add_32_arrays(array, gapped, array);
-    return bit;
+//Draw for a reciprocal distribution https://en.wikipedia.org/wiki/Reciprocal_distribution
+//not used now but was investigated to clear up some plotting issues
+float reciprocalDraw (float low, float high) {
+    double x;
+    float Urand;
+    x = (double)rand() / (double)((unsigned)RAND_MAX + 1);
+    Urand = (float) 1 - x;
+    //Inverse CDF of the reciprocal distribution
+    return powf(high/low, x) * low;
 }
