@@ -1,11 +1,5 @@
 #include "utility.h"
-
-// Could probably use this pattern more 
-typedef struct {
-    int iterations_completed;
-    float after_first_iter;
-} Q_rsqrt_results;
-
+#include "timelines.h"
 
 int main() {
     // Generation parameters

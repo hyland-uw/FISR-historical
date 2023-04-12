@@ -1,5 +1,3 @@
-#include "utility.h"
-
 // Functions to create probability arrays
 void create_prob_array(double array[32]) {
     int i;
@@ -80,7 +78,12 @@ int mutate_and_advance(double array[32]) {
     return bit;
 }
 
-// Put the function declaration here. Struct definition goes in the file.c (I think)
+// Could probably use this pattern more 
+typedef struct {
+    int iterations_completed;
+    float after_first_iter;
+} Q_rsqrt_results;
+
 Q_rsqrt_results Q_rsqrt_iter(float number, uint32_t magic, float tol, int iters) {
     union {
         float    f;
