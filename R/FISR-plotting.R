@@ -1,6 +1,6 @@
-## library(pracma)
 library(tidyr)
-q3a <- read.csv("~/Desktop/KahanNg testing/q3out.csv")
+
+## q3a <- ### load data in to this variable
 ## Order the data frame to allow us to use 
 ## base plot()'s line type without issue
 q3a <- q3a[order(q3a$Input), ]
