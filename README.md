@@ -18,7 +18,7 @@ Compile C code with -O0 to disable optimization (otherwise some elements are opt
 
 Ideally the end point for this is an R package containing data as well as functions to call the underlying C code at will. What needs to happen for that is:
 
-1. Convert the existing C code to C++ to allow the use of [Rcpp](http://dirk.eddelbuettel.com/code/rcpp.html) which has a much better interface than between  R and C.
+1. [Convert the existing C code to C++](https://legalizeadulthood.wordpress.com/2007/05/18/refactoring-convert-c-to-c/) to allow the use of [Rcpp](http://dirk.eddelbuettel.com/code/rcpp.html) which has a much better interface than between  R and C.
 2. Refactor the existing R and C code from the current mode of batch process to CSV to to an R function like generate_timelines() which would call the underlying C++ code with passed parameters.
 3. Generate exemplary datasets and store them in .Rdata format.
 4. Convert the whole project into a package with named exported functions and data.
