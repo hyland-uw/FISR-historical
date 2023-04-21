@@ -174,6 +174,17 @@ ggplot(data = magicplot[magicplot[,"iters"] < 100, ],
   guides(colour = 'none') + ylim(0, 3) + xlim(15, 30) + 
   theme_void() + theme(plot.background = element_rect(fill = "gainsboro"))
 
+## the region
+
+ggplot(data = magicplot[magicplot[,"iters"] < 100, ],
+       aes(x = sqrt(iters/steps),
+           y = sqrt(error/steps),
+           group = timeline,
+           colour = as.factor(steps))) + 
+  geom_step(alpha = 0.2) + coord_polar(theta = 'y',start = pi) +
+  guides(colour = 'none') +
+  theme_void() 
+
 ## Something that looks like a parallel coordinates plot
 ggplot(data = magicplot[magicplot[,"iters"] < 100, ],
        aes(x = iters,
@@ -192,3 +203,11 @@ ggplot(data = magicplot[magicplot[,"iters"] < 100, ],
            colour = input)) + 
   geom_point(alpha = 0.35, shape = 20) +   
   guides(colour = 'none') + ylim(0, 2) + xlim(1, 90)
+
+### the region
+
+ggplot(data = magicplot,
+       aes(x = input, y = steps, colour = iters)) + 
+  geom_path(alpha = 0.9, size = 0.05) + 
+  guides(color = 'none') + 
+  coord_polar(theta = 'x') + theme_void()
