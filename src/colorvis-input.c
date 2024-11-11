@@ -1,58 +1,129 @@
-#include "utility.h"
+#include <stdint.h>
+#include <math.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include <float.h>
 #include "timelines.h"
+#include "utility.h"
+
+// these will eventually be stored for display
+// the invalid_float field is used to indicate that the
+// initial approximation was not a valid float and is
+// not displayed but makes it easy for the below
+// function to return it
+typedef struct FISR_Result {
+    float inverse_sqrt;
+    float initial_approx;
+    int iteration_count;
+    int invalid_float;
+} FISR_Result;
+
+FISR_Result fast_inverse_sqrt(float input, int32_t magic, float tolerance, int max_NR_iters) {
+    FISR_Result result;
+    int step_count = 0;
+    // set reference float for comparison
+    float target_value = 1.0f / sqrt(input);
+
+    union {
+        float    f;
+        uint32_t i;
+    } conv = { .f = input };
+    // First approximation
+    conv.i  = magic - (conv.i >> 1);
+    
+    // Newton-Raphson iteration with tolerance and maximum steps
+    do {
+        conv.f *= (1.5F - (input * 0.5F * conv.f * conv.f));
+        if (step_count < 1) {
+            result.initial_approx = conv.f;
+        }
+        step_count++;
+    } while (fabs(conv.f - target_value) > tolerance && step_count < max_NR_iters);
+ 
+    result.inverse_sqrt = conv.f;
+    result.iteration_count = step_count;
+
+    return result;
+}
+
+
+void generate_timelines(uint32_t magic, int max_NR_iters, float tolerance, int timelines, float flt_min, float flt_max) {
+    float ref, input, final_error, prior_error, initial_error;
+    int iters, steps, flipped;
+    uint32_t stored_magic = magic;
+    int current_timeline = 1;
+
+
+    
+    double init_probabilities[FLOATSLICE] = {0};
+    create_prob_array(init_probabilities);
+    // define these now. They will be updated later
+    double probabilities[FLOATSLICE] = {0};
+    double prob_cache[FLOATSLICE] = {0};
+
+
+    srand(time(NULL));
+    printf("input, initial_error, final_error, prior_error, magic, iters, flipped, steps, current_timeline\n");
+    while (current_timeline <= timelines) {
+        // starts with the baseline distribution
+        copy_array(probabilities, init_probabilities);
+        iters = 0;
+        steps = 0;
+        prior_error = 0;
+
+        while (iters < max_NR_iters) {
+            input = uniformDraw(flt_min, flt_max);
+            FISR_Result results = fast_inverse_sqrt(input, magic, tolerance, max_NR_iters);
+
+
+            // compute errors
+            ref = 1 / sqrtf(input);
+            final_error = fabs(ref - results.inverse_sqrt);
+            initial_error = fabs(ref - results.initial_approx);
+            iters = results.iteration_count;
+
+            // we don't have a prior error for the first step
+            // so we skip printing it 
+            // We need to assign final error and steps twice which
+            // is awkward
+            if (steps == 0) {
+                prior_error = final_error;
+                steps++;
+                continue;
+            }
+            printf("%f,%f,%f,%f,0x%08x,%d,%d,%d,%d\n", input, initial_error, final_error, prior_error, magic, iters, flipped, steps, current_timeline);
+            prior_error = final_error;
+
+            // mutate the magic number
+            flipped = choose_mutation_index(probabilities);
+            magic ^= (1 << flipped);
+            redistribute_probabilities(probabilities, flipped, init_probabilities);
+
+            steps++;
+        }
+        current_timeline++;
+        magic = stored_magic;
+    }
+}
 
 int main() {
-    // Generation parameters
+    // Common generation parameters
     uint32_t magic = 0x5f37642f;
     // It appears that for > 105 iterations,
     // the algorithm is unlikely to converge.
-    int max_NR_iters = 105;
+    int max_NR_iters = 10;
     // Need to play around with this
     // Might need to pick a power of 2
-    float tol = 0.0125f;
+    float tolerance = 0.0024f;
     // More than this seems to be unhelpful
-    int timelines = 7500;
+    int timelines = 55;
     // This is (arguably) one period of the 
     // approximation--from 2^-1 to 2^1
     // Any other crossing of an even binary power of 2 will do
     float flt_min = 0.5f;
     float flt_max = 2.0f;
 
-    generate_timelines(magic, max_NR_iters, tol, timelines, flt_min, flt_max);
-    
+    generate_timelines(magic, max_NR_iters, tolerance, timelines, flt_min, flt_max);
+
     return 0;
 }
-
-/* The path of one timeline.
-
-input,error,magic,iters,flipped,steps, timeline
-7.845337,0.000152,0x5f37642e,1,31,1,1
-6.176630,0.000617,0x5f37642c,1,30,2,1
-4.926030,0.000045,0x5f376424,1,28,3,1
-4.899565,0.000036,0x5f376404,1,26,4,1
-7.123745,0.000480,0x5f376484,1,24,5,1
-7.645338,0.000242,0x5f376494,1,27,6,1
-3.673761,0.000605,0x5f3764d4,1,25,7,1
-6.646753,0.000621,0x5f3765d4,1,23,8,1
-0.633826,0.002222,0x5f3761d4,1,21,9,1
-4.658135,0.000002,0x5f3763d4,1,22,10,1
-7.695400,0.000218,0x5f3773d4,1,19,11,1
-2.325683,0.000940,0x5f377bd4,1,20,12,1
-7.049764,0.000526,0x5f375bd4,1,18,13,1
-3.304683,0.000026,0x5f365bd4,1,15,14,1
-4.711877,0.000010,0x5f361bd4,1,17,15,1
-4.929669,0.000005,0x5f369bd4,1,16,16,1
-4.342799,0.000247,0x5f329bd4,1,13,17,1
-3.874860,0.002014,0x5f229bd4,1,11,18,1
-7.963129,0.005192,0x5f629bd4,1,9,19,1
-3.957974,0.061841,0x5f6a9bd4,3,12,20,1
-2.166996,0.114219,0x5f4a9bd4,3,10,21,1
-5.024805,0.006292,0x5f489bd4,1,14,22,1
-7.318483,0.007966,0x5fc89bd4,2,8,23,1
-0.985052,2.754919,0x5fc88bd4,17,19,24,1
-6.480330,1.271065,0x5dc88bd4,14,6,25,1
-7.099020,0.297111,0x5cc88bd4,7,7,26,1
-7.818248,0.339020,0x7cc88bd4,10,2,27,1
-1.464925,inf,0x74c88bd4,105,4,28,1
-
-*/

@@ -1,5 +1,7 @@
 library(tidyr)
 
+
+q3a <- read.csv("~/Desktop/FISR-historical/data/FISR-data.csv", header=TRUE)
 ## q3a <- ### load data in to this variable
 ## Order the data frame to allow us to use 
 ## base plot()'s line type without issue
