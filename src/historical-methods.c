@@ -1,4 +1,79 @@
-#include "utility.h"
+#include <stdbool.h>
+#include <stdio.h>
+#include <stdint.h>
+#include <stdlib.h>
+#include <math.h>
+#include <stddef.h>
+
+/*
+Implementations of various inverse square roots. As noted below,
+type punning (see https://retrocomputing.stackexchange.com/q/26314/23632)
+is used for some. This is preserved here.
+
+*/
+
+// Casting functions using pointers
+// Not memory safe but used because that's how it was
+// done in the examples we are following
+// make sure to compile with -O0 to prevent the compiler from
+// optimizing out the pointer arithmetic
+uint64_t AsIntegerDouble(double df) {
+    return * ( uint64_t * ) &df;
+}
+double AsDouble64BitInt(int64_t i) {
+    return * ( double * ) &i;
+}
+int AsInteger(float f) {
+    return * ( int * ) &f;
+}
+
+float AsFloat(int i) {
+    return * ( float * ) &i;
+}
+
+
+
+/*
+LaLonde and Dawson's 1990 method was previously checked into this repository,
+it is now at https://gist.github.com/Protonk/dfbcab17986777ff997f24dcdd8e3bbc
+*/
+
+// See https://gist.github.com/Protonk/f3c5bb91f228ffec4d4c5e2eb16e489d
+// and https://www.netlib.org/fdlibm/e_sqrt.c "sqrt(x) by Reciproot Iteration"
+// 1986
+float KahanNgISR(double x, int NR) {
+    double y;
+    int magic = 0x5fe80000;
+    static int lookup[64]= {
+        0x1500, 0x2ef8, 0x4d67, 0x6b02, 0x87be, 0xa395, 0xbe7a, 0xd866,
+        0xf14a, 0x1091b,0x11fcd,0x13552,0x14999,0x15c98,0x16e34,0x17e5f,
+        0x18d03,0x19a01,0x1a545,0x1ae8a,0x1b5c4,0x1bb01,0x1bfde,0x1c28d,
+        0x1c2de,0x1c0db,0x1ba73,0x1b11c,0x1a4b5,0x1953d,0x18266,0x16be0,
+        0x1683e,0x179d8,0x18a4d,0x19992,0x1a789,0x1b445,0x1bf61,0x1c989,
+        0x1d16d,0x1d77b,0x1dddf,0x1e2ad,0x1e5bf,0x1e6e8,0x1e654,0x1e3cd,
+        0x1df2a,0x1d635,0x1cb16,0x1be2c,0x1ae4e,0x19bde,0x1868e,0x16e2e,
+        0x1527f,0x1334a,0x11051,0xe951, 0xbe01, 0x8e0d, 0x5924, 0x1edd
+    };
+    uint32_t xUPPER, yUPPER, k;
+    uint64_t xINT, yINT;
+    xINT = *( uint64_t *) &x;
+    xUPPER = (xINT & 0xffffffff00000000) >> 32;
+    k = magic - (xUPPER >> 1);
+    yUPPER = k - lookup[63 & (k >> 14)];
+    yINT = ((uint64_t) yUPPER << 32);
+    y = *( double* ) &yINT;
+    y = (float) y;
+    while (NR > 0) {
+        // from fdlibm comments:
+        // The constant 1.5-2^-30 is chosen to bias the error so that
+        //    (a) the term z*y in the final iteration is always less than 1;
+	    //    (b) the error in the final result is biased upward so that
+		//    -1 ulp < sqrt(x) - z < 1.0625 ulp instead of |sqrt(x)-z|<1.03125ulp.
+        y = y * (1.5f - powf(2, -30) - (0.5f * x * y * y));
+        NR--;
+    }
+    return y;
+}
 
 // accepts a double and splits it, like KahanNg
 // See https://inbetweennames.net/blog/2021-05-06-i76rsqrt/
@@ -71,58 +146,13 @@ double i76ISR(double x, int NR) {
     uint64_t const combined_bits = exponent_bits | mantissa_bits;
     double y = AsDouble64BitInt(combined_bits);
 
-    if (NR == 1) {
+    while (NR > 0) {
         y = y * (1.5f - (0.5f * x * y * y));
         // Interstate76 used a correction factor of 1.00001 here
         y = y * 1.00001;
+        NR--;
     }
-    return y;
-}
 
-// Run KahanNg without the table lookup to visually
-// demonstrate the similarity with FISR/Magic/Blinn
-// despite the use of a split double vs a float
-float KahanNgNoLookupISR(double x, int NR) {
-    double y;
-    unsigned long int xUPPER, yUPPER, k;
-    unsigned long long int xINT, yINT;
-    xINT = *( unsigned long long int *) &x;
-    xUPPER = (xINT & 0xffffffff00000000) >> 32;
-    k = 0x5fe80000 - (xUPPER >> 1);
-    yUPPER = k - 0x1500;
-    yINT = ((unsigned long long int) yUPPER << 32);
-    y = *( double* ) &yINT;
-    y = (float) y;
-    return y;
-}
-
-// See https://gist.github.com/Protonk/f3c5bb91f228ffec4d4c5e2eb16e489d
-float KahanNgISR(double x, int NR) {
-    double y;
-    static int lookup[64]= {
-        0x1500, 0x2ef8, 0x4d67, 0x6b02, 0x87be, 0xa395, 0xbe7a, 0xd866,
-        0xf14a, 0x1091b,0x11fcd,0x13552,0x14999,0x15c98,0x16e34,0x17e5f,
-        0x18d03,0x19a01,0x1a545,0x1ae8a,0x1b5c4,0x1bb01,0x1bfde,0x1c28d,
-        0x1c2de,0x1c0db,0x1ba73,0x1b11c,0x1a4b5,0x1953d,0x18266,0x16be0,
-        0x1683e,0x179d8,0x18a4d,0x19992,0x1a789,0x1b445,0x1bf61,0x1c989,
-        0x1d16d,0x1d77b,0x1dddf,0x1e2ad,0x1e5bf,0x1e6e8,0x1e654,0x1e3cd,
-        0x1df2a,0x1d635,0x1cb16,0x1be2c,0x1ae4e,0x19bde,0x1868e,0x16e2e,
-        0x1527f,0x1334a,0x11051,0xe951, 0xbe01, 0x8e0d, 0x5924, 0x1edd
-    };
-    uint32_t xUPPER, yUPPER, k;
-    uint64_t xINT, yINT;
-    xINT = *( uint64_t *) &x;
-    xUPPER = (xINT & 0xffffffff00000000) >> 32;
-    k = 0x5fe80000 - (xUPPER >> 1);
-    yUPPER = k - lookup[63 & (k >> 14)];
-    yINT = ((uint64_t) yUPPER << 32);
-    y = *( double* ) &yINT;
-    y = (float) y;
-    if (NR == 1) {
-        // https://adampunk.com/documents/softsqrt.pdf section 2
-        // for specific constant choice
-        y = y * (1.5f - powf(2, -30) - (0.5f * x * y * y));
-    }
     return y;
 }
 
@@ -130,47 +160,53 @@ float KahanNgISR(double x, int NR) {
 // See http://www.arithmazium.org/library/lib/wk_square_root_aug80.pdf (1980)
 // may have a predecessor in the 1970s in UNIX Version 5
 // https://minnie.tuhs.org/cgi-bin/utree.pl?file=V5/usr/source/s3/sqrt.s
-float MagicISR(float x, int Heron) {
+float MagicISR(float x, int NR) {
     int magic = 0x1FBF8300;
     int i0;
     float y;
     i0 = (AsInteger(x) >> 1) + magic;
     y = AsFloat(i0);
-    // The application uses two stages of Heron's rule but we restrict to one
-    // to normalize across all methods
-    if (Heron == 1) {
+    while (NR > 0) {
         y = (y + (x / y))/2;
+        NR--;
     }
     // Kahan's magic sqrt is for a square root, not an inverse sqrt
     // We want to compare the bit shifting properly so we reciprocate at the end
     return  1.0f / y;
 }
 
+
 // FISR demonstrating the logaritmic nature of the floating-point numbers
 // The constant chosen is not "magic" but that which replaces the lost
 // exponents from the shift of the number as an integer.
+// 1997
 float BlinnISR(float x, int NR) {
     int i;
+    int magic = 0x5F400000;
     float y;
     // 0x5F400000 = 1598029824
     // which is (AsInteger(1.0f) + (AsInteger(1.0f) >> 1))
-    i = 0x5F400000 - ( AsInteger(x) >> 1);
+    i = magic - ( AsInteger(x) >> 1);
     y = AsFloat(i);
-    if (NR == 1) {
+    while (NR > 0) {
         // See https://doi.org/10.1109/38.595279
         y = y * (1.47f - 0.47f * x * y * y);
+        NR--;
     }
     return y;
 }
 
 //See https://en.wikipedia.org/wiki/Fast_inverse_square_root
+// Published ~1999
 float QuakeISR(float x, int NR) {
     int i0;
+    int magic = 0x5f3759df;
     float y;
-    i0  = 0x5f3759df - (AsInteger(x) >> 1);
+    i0  = magic - (AsInteger(x) >> 1);
     y = AsFloat(i0);
-    if (NR == 1) {
+    while (NR > 0) {
         y = y * (1.5f - (0.5f * x * y * y));
+        NR--;
     }
     return  y;
 }
@@ -181,10 +217,12 @@ float withoutDivISR(float x, int NR) {
     // 0x5f39d015 is the hex value for
     // the float which has an eponent of 190
     // and a fraction of ~.451
-    int i0 = 0x5f39d015 - (AsInteger(x) >> 1);
+    int magic = 0x5f39d015;
+    int i0 = magic - (AsInteger(x) >> 1);
     float y = AsFloat(i0);
-    if (NR == 1) {
+    while (NR > 0) {
         y = y * (1.5f - (0.5f * x * y * y));
+        NR--;
     }
     return y;
 }
@@ -194,14 +232,16 @@ float withoutDivISR(float x, int NR) {
 // Optimal Newton-Raphson / magic constant combination
 // found viabrute force search of the 32-bit integer space
 // for magic constant and coefficients in Newton-Raphson step
+// post 2010
 float optimalFISR (float x, int NR) {
     union { float f; uint32_t u; } y = {x};
-    y.u = 0x5F1FFFF9ul - (y.u >> 1);
-    if (NR == 1) {
-        return 0.703952253f * y.f * (2.38924456f - x * y.f * y.f);
-    } else {
-        return y.f;
+    int magic = 0x5F1FFFF9ul;
+    y.u = magic - (y.u >> 1);
+    while (NR > 0) {
+        y.f = 0.703952253f * y.f * (2.38924456f - x * y.f * y.f);
+        NR--;
     }
+    return y.f
 }
 
 // Constant choice from Moroz et al (2018)
@@ -211,11 +251,12 @@ float optimalFISR (float x, int NR) {
 // See page 15 for InvSqrt2 constants
 float MorozISR(float x, int NR) {
     float halfx = x * 0.5f;
+    int magic = 0x5F376908;
     union { float f; uint32_t u; } y = {x};
-    y.u = 0x5F376908 - (y.u >> 1);
-    if (NR == 1) {
-        return y.f * (1.5008789f - halfx * y.f * y.f);
-    } else {
-        return y.f;
+    y.u = magic - (y.u >> 1);
+    while (NR > 0) {
+        y.f = y.f * (1.5008789f - halfx * y.f * y.f);
+        NR--;
     }
+    return y.f;
 }
