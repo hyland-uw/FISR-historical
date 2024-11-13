@@ -79,12 +79,12 @@ Harness fast_rsqrt(float x, uint32_t NR, uint32_t magic, float halfthree, float 
 // Main function calls the sampler which
 // outputs via printf for a csv
 int main() {
-    int draws = 20;
+    int draws = 20000;
     uint32_t NR = 2;
-    uint32_t base_magic = 0x5F400000;
+    uint32_t base_magic = 0x5f3759df;
     int scale = 1000000;
-    float min = 1.25f;
-    float max = 1.5f;
+    float min = 0.25f;
+    float max = 1.0f;
     sample_fast_rsqrt(draws, NR, scale, base_magic, min, max);
     return 0;
 }
