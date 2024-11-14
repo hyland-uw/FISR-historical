@@ -57,7 +57,7 @@ Harness fast_rsqrt(float x, int NRmax, uint32_t magic, float halfthree, float ha
     while (iters < NRmax) {
         y.f = y.f * (halfthree - halfone * x * y.f * y.f);
         // terminate NR iteration when we are close
-        if (fabs(y.f - result.reference) < 0.005f) {
+        if (fabs(y.f - result.reference) < 0.0025f) {
             break;
         }
         iters++;

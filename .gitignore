@@ -4,3 +4,7 @@ src/qinst
 src/visinput
 src/many-tl
 R/montecarlo.R
+src/fisr
+src/timelines.csv
+data/timelines.csv
+src/fisr

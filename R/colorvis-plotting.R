@@ -2,7 +2,15 @@ library(scales)
 library(ggplot2)
 
 
-magicplot <- read.csv("~/Desktop/FISR-historical/data/magicplot.csv")
+timelines <- read.csv("~/Desktop/FISR-historical/src/timelines.csv")
+timelines <- timelines[timelines[, "invalid"] == FALSE & timelines[, "NR_iters"] < 8, ]
+
+
+ggplot(data = timelines,
+       aes(x = (initial_approx - output), y = input, colour = as.factor(NR_iters))) + 
+  geom_point(alpha = 0.3, shape = 20) + guides(colour = 'none')
+
+
 ## assumes that we have:
 ## magicplot and itercount
 
