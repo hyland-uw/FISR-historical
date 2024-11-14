@@ -61,47 +61,14 @@ uint32_t generate_sample(uint32_t input, int scale) {
 
 // Harness Function prototype
 typedef struct Harness {
-    float input, halfthree, halfone;
-    uint32_t magic, NR_iterations;
-    float output, initial_approx;
+    float input, reference, output, initial_approx;
+    int NR_iters;
     bool invalid_float_reached;
 } Harness;
 
-Harness fast_rsqrt(float x, uint32_t NR, uint32_t magic, float halfthree, float halfone);
+Harness fast_rsqrt(float x, int NRmax, uint32_t magic, float halfthree, float halfone);
 
 // Sampling function prototype
-void sample_fast_rsqrt(int draws, uint32_t NR, int scale, uint32_t base_magic, float min, float max) {
-    // These are not user defined for now.
-    float halfthree = 1.5f;
-    float halfone = 0.5f;
-
-    // Define our x here, which will change for each draw.
-    float x;
-
-    printf("input,reference,initial_approx,output,NR_iters,magic_number\n");
-
-    for (int i = 0; i < draws; i++) {
-        // we also have a smooth uniform distribution
-        // with uniformRange()
-        x = reciprocalRange(min, max);
-        // Used to compute error
-        float reference_rsqrt = 1.0f / sqrtf(x);
-        // Select a magic random number
-        uint32_t magic = generate_sample(base_magic, scale);
-        // run the harness with above parameters
-        Harness result = fast_rsqrt(x, NR, magic, halfthree, halfone);
-
-        // because we used the result struct, this is reasonably tidy
-        printf("%f,%f,%f,%f,%u,0x%08X\n",
-               x,
-               reference_rsqrt,
-               result.initial_approx,
-               result.output,
-               result.NR_iterations,
-               result.magic);
-    }
-}
-
-
+void sample_fast_rsqrt(int draws, int NRmax, int scale, uint32_t base_magic, float min, float max);
 
 #endif // FISR_HARNESS_H

@@ -241,7 +241,7 @@ float optimalFISR (float x, int NR) {
         y.f = 0.703952253f * y.f * (2.38924456f - x * y.f * y.f);
         NR--;
     }
-    return y.f
+    return y.f;
 }
 
 // Constant choice from Moroz et al (2018)
