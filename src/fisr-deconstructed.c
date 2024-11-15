@@ -19,10 +19,9 @@ Harness fast_rsqrt(float x, int NRmax, uint32_t magic, float halfthree, float ha
     // Used to compute error
     result.reference = 1.0f / sqrtf(x);
 
-    int iters = 0;
-
     // Track if we reach a state which won't plot well
     result.invalid_float_reached = false;
+
     // The input is given two simultaneous representations:
     // a 32 bit float y.f and a 32 bit unsigned integer y.u,
     // both from the same bitfield associated with x
@@ -44,37 +43,48 @@ Harness fast_rsqrt(float x, int NRmax, uint32_t magic, float halfthree, float ha
 
     // Now that we have manipulated the bitfield as an integer
     // and restored the bits in the exponent, we extract the
-    // floating point representation.
+    // floating point representation. Treating the value
+    // has the effect of removing us from the logarithmic domain
     result.initial_approx = y.f;
-    if (!isnormal(result.initial_approx)) {
-        result.invalid_float_reached = true;
-    }
 
     // All of the FISRs we see in this library use at least
     // one iteration of Newton-Raphson.
     // Because different approximations choose differing
     // values for halfthree and halfone, we can select them
+    int iters = 0;
     while (iters < NRmax) {
         y.f = y.f * (halfthree - halfone * x * y.f * y.f);
+        iters++;
         // terminate NR iteration when we are close
-        if (fabs(y.f - result.reference) < 0.0025f) {
+        if (fabs(y.f - result.reference) < 0.000125f) {
             break;
         }
-        iters++;
     }
+    // Record output after the while loop, then check
+    // validity
     result.output = y.f;
     result.NR_iters = iters;
 
-    // We may reach an invalid float through a
-    // poor choice of restoring constant or
-    // overflow with (very) poor choices of
-    // three or half
-    if (!isnormal(result.output)) {
+    if (!isnormal(result.initial_approx)) {
         result.invalid_float_reached = true;
     }
 
-    //WIP. If we are too far off, discard for visual clarity
-    if (fabs(result.output - result.reference) > 5 * fabs(result.reference)) {
+    // We set the max elsewhere. If we reach it,
+    // it is likely the output will not converge
+    if (result.NR_iters == NRmax) {
+        result.invalid_float_reached = true;
+    }
+
+    // A poor choice of restoring constant can make the
+    // resulting float invalid. isnormal() is chosen to
+    // exclude subnormal numbers, which won't work with
+    // the trick
+    // c.f. https://stackoverflow.com/q/75772363/1188479
+    //
+    // We may also reach an invalid float through
+    // overflow with (very) poor choices of
+    // three or half
+    if (!isnormal(result.output) || !isnormal(result.initial_approx)) {
         result.invalid_float_reached = true;
     }
 
@@ -91,7 +101,7 @@ void sample_fast_rsqrt(int draws, int NRmax, int scale, uint32_t base_magic, flo
     // Define our x here, which will change for each draw.
     float x;
 
-    printf("input,reference,initial_approx,output,NR_iters,magic_number,invalid\n");
+    printf("input,reference,initial,final,iters,magic_number\n");
 
     for (int i = 0; i < draws; i++) {
         // we also have a smooth uniform distribution
@@ -102,27 +112,36 @@ void sample_fast_rsqrt(int draws, int NRmax, int scale, uint32_t base_magic, flo
         // run the harness with above parameters
         Harness result = fast_rsqrt(x, NRmax, magic, halfthree, halfone);
 
+        // We want to be able to sample and then reject
+        // results which don't converge as this is for
+        // visualization
+
+        if (result.invalid_float_reached == true) {
+            continue;
+        }
+
         // because we used the result struct, this is reasonably tidy
-        printf("%f,%f,%f,%f,%u,0x%08X,%d\n",
+        printf("%f,%f,%f,%f,%u,0x%08X\n",
                x,
                result.reference,
                result.initial_approx,
                result.output,
                result.NR_iters,
-               magic,
-               result.invalid_float_reached);
+               magic);
     }
 }
 
 // Main function calls the sampler which
 // outputs via printf for a csv
 int main() {
-    int draws = 40000;
-    int NRmax = 8;
+    int draws = 128000;
+    // experiments show that if it does not converge after
+    // 94 it probably will not converge (tested up to 2000)
+    int NRmax = 95;
     uint32_t base_magic = 0x5f3759df;
     int scale = 1000000;
-    float min = 0.25f;
-    float max = 1.0f;
+    float min = 0.00390625f;
+    float max = 2.0f;
     sample_fast_rsqrt(draws, NRmax, scale, base_magic, min, max);
     return 0;
 }

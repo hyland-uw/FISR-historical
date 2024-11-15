@@ -71,4 +71,24 @@ Harness fast_rsqrt(float x, int NRmax, uint32_t magic, float halfthree, float ha
 // Sampling function prototype
 void sample_fast_rsqrt(int draws, int NRmax, int scale, uint32_t base_magic, float min, float max);
 
+// Function prototypes for historical methods
+float MagicISR(float x, int NR);
+float BlinnISR(float x, int NR);
+float QuakeISR(float x, int NR);
+float withoutDivISR(float x, int NR);
+float optimalFISR(float x, int NR);
+float MorozISR(float x, int NR);
+
+// Declare a function and struct to access the various historical methods
+typedef float (*ISRFunction)(float, int);
+
+typedef struct {
+    const char *name;
+    ISRFunction func;
+} ISREntry;
+
+// Declare the table as extern
+extern ISREntry isr_table[];
+
+
 #endif // FISR_HARNESS_H
