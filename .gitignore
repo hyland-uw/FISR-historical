@@ -1,5 +1,4 @@
 .DS_Store
 .gitattributes
-R/montecarlo.R
 src/fisr
 fisrvenv/*
