@@ -28,6 +28,9 @@ float reciprocalRange (float min, float max) {
 }
 
 
+//// The below random_normal() and random_students_t() serve our
+//// integer sampler, generate_sample
+
 // Box-Muller transform to generate normally distributed numbers
 // Used to generate a student's t.
 double random_normal() {
@@ -47,7 +50,7 @@ double random_student_t() {
 
 // Generate a sample based on the input number
 // We are sampling integers, not floats.
-uint32_t generate_sample(uint32_t input, int scale) {
+uint32_t generate_integer_sample(uint32_t input, int scale) {
     double t = random_student_t();
 
     // Scale the t-distribution value
@@ -59,14 +62,20 @@ uint32_t generate_sample(uint32_t input, int scale) {
     return (uint32_t)((int64_t)input + offset);
 }
 
-// Harness Function prototype
-typedef struct Harness {
+//  Minimal harness for speed
+typedef struct minimalHarness {
+    float approx, final;
+} minimalHarness;
+minimalHarness minimal_rsqrt(float x, uint32_t magic, float halfthree, float halfone);
+
+
+// Harness to capture information for visualization
+typedef struct deconHarness {
     float input, reference, output, initial_approx;
     int NR_iters;
     bool invalid_float_reached;
-} Harness;
-
-Harness fast_rsqrt(float x, int NRmax, uint32_t magic, float halfthree, float halfone);
+} deconHarness;
+deconHarness decon_rsqrt(float x, int NRmax, uint32_t magic, float tol);
 
 // Sampling function prototype
 void sample_fast_rsqrt(int draws, int NRmax, int scale, uint32_t base_magic, float min, float max);

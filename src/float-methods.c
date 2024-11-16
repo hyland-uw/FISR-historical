@@ -10,13 +10,12 @@
 // Avoid subnormals explicitly
 #define MIN_NORMAL_FLOAT FLT_MIN
 
-// Implementations of various inverse square roots. As noted below,
-// type punning (see https://retrocomputing.stackexchange.com/q/26314/23632)
-// is used for some. This is preserved here.
-// Casting functions using pointers
+// Casting functions using pointers and "type punning"
+// (see https://retrocomputing.stackexchange.com/q/26314/23632)
 // Not memory safe but used because that's how it was
-// done in the examples we are following
-// make sure to compile with -O0 to prevent the compiler from
+// done in the examples we are following it is preserved here.
+//
+// Make sure to compile with -O0 to prevent the compiler from
 // optimizing out the pointer arithmetic
 uint64_t AsIntegerDouble(double df) {
     return * ( uint64_t * ) &df;
@@ -31,6 +30,14 @@ int AsInteger(float f) {
 float AsFloat(int i) {
     return * ( float * ) &i;
 }
+
+//// Implementations of various inverse square roots.
+//// all should accept:
+////     an input float x, assumed to be positive and normal
+////     an input int NR, assumed to be > 0
+//// all should return:
+////     a float which is an approximation of 1/sqrt(x)
+
 
 //Kahan's "Magic" square root
 // See http://www.arithmazium.org/library/lib/wk_square_root_aug80.pdf (1980)
@@ -137,6 +144,10 @@ float MorozISR(float x, int NR) {
     return y.f;
 }
 
+/*
+LaLonde and Dawson's 1990 method was previously checked into this repository,
+it is now at https://gist.github.com/Protonk/dfbcab17986777ff997f24dcdd8e3bbc
+*/
 
 // This construction allows easy dispatch for each of the FISR methods
 // we are testing.
@@ -163,16 +174,6 @@ float FISR(const char *name, float x, int NR) {
 }
 
 
-// A main function should print:
-//
-// ISR_function, input, reference, NR_0, NR_1
-// BlinnISR, 1.25, 0.8944272, 0.9, 0.895
-//
-// This should be printed for all ISR functions in the table
-// User parameters should be: number of draws and an input range
-//
-// For now, the sampling function for the input floats can be uniform
-
 
 int main() {
     // Set parameters directly in the function
@@ -187,7 +188,10 @@ int main() {
         fprintf(stderr, "Error: min_input must be less than max_input\n");
         return 1;
     }
-
+    // Prints in tidy format, e.g.:
+    //
+    // ISR_function, input, reference, NR_0, NR_1
+    // BlinnISR, 1.25, 0.8944272, 0.9, 0.895
     printf("ISR_function, input, reference, NR_0, NR_1\n");
 
     for (int draw = 0; draw < num_draws; draw++) {

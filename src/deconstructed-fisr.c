@@ -3,21 +3,25 @@
 /*
 This harness allows us to deconstruct the working and output of an idealized FISR.
 
-The main parameters used to tune the approximation are magic, halfthree, and halfone.
+The main purpose of this is to visualize the result of selecting both the
+input and the magic constant at random, so the space of possible choices is seen.
 
-The number of Newton-Raphson iterations are selected by parameter NR. High values
-of NR can show where a set of parameters causes the approximation to fail to converge
+Unlike in the individual methods, the FISR is allowed to converge and the
+iterations required for convergence is stored.
 
 Unions are used to avoid type punning, so this code should work at all
 levels of compiler optimization.
 */
 
-Harness fast_rsqrt(float x, int NRmax, uint32_t magic, float halfthree, float halfone) {
-    Harness result;
+deconHarness decon_rsqrt(float x, int NRmax, uint32_t magic, float tol) {
+    deconHarness result;
 
     // Compute a reference inverse square root
     // Used to compute error
     result.reference = 1.0f / sqrtf(x);
+
+    // float tol should be somewhere around or above 0.000125f
+
 
     // Track if we reach a state which won't plot well
     result.invalid_float_reached = false;
@@ -53,10 +57,13 @@ Harness fast_rsqrt(float x, int NRmax, uint32_t magic, float halfthree, float ha
     // values for halfthree and halfone, we can select them
     int iters = 0;
     while (iters < NRmax) {
-        y.f = y.f * (halfthree - halfone * x * y.f * y.f);
+        // Hardcode 1.5 and 0.5 for this version
+        y.f = y.f * (1.5f - 0.5f * x * y.f * y.f);
         iters++;
         // terminate NR iteration when we are close
-        if (fabs(y.f - result.reference) < 0.000125f) {
+        // rather than after 1 or 2 to better show
+        // the possibility space
+        if (fabs(y.f - result.reference) < tol) {
             break;
         }
     }
@@ -92,11 +99,9 @@ Harness fast_rsqrt(float x, int NRmax, uint32_t magic, float halfthree, float ha
 }
 
 void sample_fast_rsqrt(int draws, int NRmax, int scale, uint32_t base_magic, float min, float max) {
-    // These are not user defined for now.
-    // In NR steps, halfthree is usually 1.5 and halfone 0.5,
-    // but not always.
-    float halfthree = 1.5f;
-    float halfone = 0.5f;
+    // Define our tolerance
+
+    float tol = 0.000125f;
 
     // Define our x here, which will change for each draw.
     float x;
@@ -108,9 +113,9 @@ void sample_fast_rsqrt(int draws, int NRmax, int scale, uint32_t base_magic, flo
         // with uniformRange()
         x = reciprocalRange(min, max);
         // Select a magic random number
-        uint32_t magic = generate_sample(base_magic, scale);
+        uint32_t magic = generate_integer_sample(base_magic, scale);
         // run the harness with above parameters
-        Harness result = fast_rsqrt(x, NRmax, magic, halfthree, halfone);
+        deconHarness result = decon_rsqrt(x, NRmax, magic, tol);
 
         // We want to be able to sample and then reject
         // results which don't converge as this is for

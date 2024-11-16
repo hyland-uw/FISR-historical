@@ -1,11 +1,6 @@
 #include <stdint.h>
 #include <math.h>
 
-/*
-LaLonde and Dawson's 1990 method was previously checked into this repository,
-it is now at https://gist.github.com/Protonk/dfbcab17986777ff997f24dcdd8e3bbc
-*/
-
 // See https://gist.github.com/Protonk/f3c5bb91f228ffec4d4c5e2eb16e489d
 // and https://www.netlib.org/fdlibm/e_sqrt.c "sqrt(x) by Reciproot Iteration"
 // 1986
