@@ -98,7 +98,7 @@ deconHarness decon_rsqrt(float x, int NRmax, uint32_t magic, float tol) {
     return result;
 }
 
-void sample_fast_rsqrt(int draws, int NRmax, int scale, uint32_t base_magic, float min, float max) {
+void sample_fast_rsqrt(int draws, int NRmax, uint32_t base_magic, float min, float max) {
     // Define our tolerance
 
     float tol = 0.000125f;
@@ -113,7 +113,7 @@ void sample_fast_rsqrt(int draws, int NRmax, int scale, uint32_t base_magic, flo
         // with uniformRange()
         x = reciprocalRange(min, max);
         // Select a magic random number
-        uint32_t magic = generate_integer_sample(base_magic, scale);
+        uint32_t magic = generate_integer_sample(base_magic);
         // run the harness with above parameters
         deconHarness result = decon_rsqrt(x, NRmax, magic, tol);
 
@@ -147,6 +147,6 @@ int main() {
     int scale = 1000000;
     float min = 0.00390625f;
     float max = 2.0f;
-    sample_fast_rsqrt(draws, NRmax, scale, base_magic, min, max);
+    sample_fast_rsqrt(draws, NRmax, base_magic, min, max);
     return 0;
 }
