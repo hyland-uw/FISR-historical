@@ -1,13 +1,6 @@
 #include "sampling-harness.h"
-#include <stdio.h>
-#include <stdint.h>
-#include <math.h>
-#include <float.h>
-#include <time.h>
-#include <omp.h>
 
-
-void single_float_search(float input, int samples) {
+void single_float_search(float input, uint32_t samples) {
     float reference = 1.0f / sqrtf(input);
     float error, approx;
 
@@ -24,7 +17,7 @@ void single_float_search(float input, int samples) {
     #pragma omp parallel
     {
         #pragma omp for
-        for (int i = 0; i < samples; i++) {
+        for (uint32_t i = 0; i < samples; i++) {
             uint32_t magic = sample_integer_range(MIN_INT, MAX_INT);
             approx = minimal_rsqrt(input, magic, 1);
             error = fabsf(approx - reference) / reference;
@@ -35,7 +28,7 @@ void single_float_search(float input, int samples) {
     }
 
     // Print results after parallel region
-    for (int i = 0; i < samples; i++) {
+    for (uint32_t i = 0; i < samples; i++) {
         printf("%e, %e, 0x%08X\n", input, results[i].error, results[i].magic);
     }
 
@@ -44,8 +37,8 @@ void single_float_search(float input, int samples) {
 
 void split_float_range(float start, float end, uint32_t slices, uint32_t samples) {
     float current;
-    printf("float, error, magic\n");
-    for (int i = 0; i < slices; i++) {
+    printf("input, error, magic\n");
+    for (uint32_t i = 0; i < slices; i++) {
         current = reciprocalRange(start, end);
         single_float_search(current, samples);
     }

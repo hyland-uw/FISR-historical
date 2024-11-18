@@ -98,11 +98,7 @@ deconHarness decon_rsqrt(float x, int NRmax, uint32_t magic, float tol) {
     return result;
 }
 
-void sample_decon_rsqrt(int draws, int NRmax, uint32_t base_magic, float min, float max) {
-    // Define our tolerance
-
-    float tol = 0.000125f;
-
+void sample_decon_rsqrt(int draws, int NRmax, float min, float max, float tol) {
     // Define our x here, which will change for each draw.
     float x;
 
@@ -113,7 +109,7 @@ void sample_decon_rsqrt(int draws, int NRmax, uint32_t base_magic, float min, fl
         // with uniformRange()
         x = reciprocalRange(min, max);
         // Select a magic random number
-        uint32_t magic = sample_integer_range_with_peak(base_magic, MIN_INT, MAX_INT);
+        uint32_t magic = sample_integer_range(MIN_INT, MAX_INT);
         // run the harness with above parameters
         deconHarness result = decon_rsqrt(x, NRmax, magic, tol);
 
@@ -139,13 +135,7 @@ void sample_decon_rsqrt(int draws, int NRmax, uint32_t base_magic, float min, fl
 // Main function calls the sampler which
 // outputs via printf for a csv
 int main() {
-    int draws = MAGIC_CONSTANT_DRAWS;
-    // experiments show that if it does not converge after
-    // 94 it probably will not converge (tested up to 2000)
-    int NRmax = 95;
-    uint32_t base_magic = 0x5f3759df;
-    float min = FLOAT_START;
-    float max = FLOAT_END;
-    sample_decon_rsqrt(draws, NRmax, base_magic, min, max);
+    srand(time(NULL));
+    sample_decon_rsqrt(MAGIC_CONSTANT_DRAWS, NRMAX, FLOAT_START, FLOAT_END, FLOAT_TOL);
     return 0;
 }

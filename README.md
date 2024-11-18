@@ -8,24 +8,19 @@ The code and data here are components of a larger investigation into the history
 
 ## Mode of operation
 
-The project right now works in batches. The c code is compiled and run to produce the desired output, then the output is loaded into R manually and the plot functions provided should generate the plots you see. The project will eventually move to C++ code which is called from functions in an R package to generate these numbers on the fly for plotting (or interact with a dataset of them).
-
-C code is in "/src", R code "/R" and data in "/data". Example plots are in "/plots". Note plots are illustrative and are not mapped securely to a specific version of the code, so your results may vary.
+Run `make` in the base directory to generate csvs in the data directory. Sampling parameters are set in the sampling-harness.h file.
 
 ### Specific files
 
 C code:
-* deconstructed-fisr.c replaces the usual iteration limit of 1-2 Newton-Raphson iterations with iteration to a tolerance, which supports plotting the space for random inputs and magic constants (which produce better or worse approximations).
-* minimal-fisr.c performs 1 iterations of Newton-raphson with user supplied values for the magic constant and NR parameters. Returns the initial approximation and the final result.
-* float-methods.c and double-methods.c contain specific approximations in order to graph their performance.
+* approximated.c plots performance of historical FRSR style approximations over a range of floats.
+* deconstructed.c replaces the usual iteration limit of 1-2 Newton-Raphson iterations with iteration to a tolerance, which supports plotting the space for random inputs and magic constants (which produce better or worse approximations).
+* enumerated.c does the unusual job of enumerating a "best" magic constant for a given float. Imagine the world's least efficient lookup table.
+* sliced.c maps the performance of a range of magic constants across sets of floats to visualize slices of the output.
 * sampling-harness.h contains utility methods for sampling floats and integers as well as headers for some functions we use to sample.
 
 R code:
 * Currently the R code in the repository works with old datasets where I used an elaborate method to change the magic constant for artsy purposes. It is being re-written to use the new sampling methods.
-
-### Note for compilation
-
-Compile C code with -O0 to disable optimization (otherwise some elements are optimized out and the output is wrong).
 
 ## Future directions
 

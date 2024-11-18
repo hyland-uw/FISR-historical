@@ -1,10 +1,4 @@
 #include "sampling-harness.h"
-#include <stdio.h>
-#include <stdint.h>
-#include <math.h>
-#include <float.h>
-#include <time.h>
-#include <omp.h>
 
 void full_float_search(int float_slices, int int_samples) {
     printf("input, system, NR0, magic\n");

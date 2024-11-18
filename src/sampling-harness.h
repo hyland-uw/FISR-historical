@@ -1,12 +1,17 @@
 #ifndef FISR_HARNESS_H
 #define FISR_HARNESS_H
 
-#include <stdbool.h>
-#include <stdio.h>
-#include <stdint.h>
-#include <stdlib.h>
+// Localized calls to libraries
+#include <float.h>
 #include <math.h>
-
+#include <omp.h>
+#include <stdbool.h>
+#include <stddef.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <time.h>
 
 // values above or below these are usually poor sources of approximations.
 #define MIN_INT 1596980000
@@ -24,6 +29,12 @@
 // For visualizing
 #define FLOAT_SLICES 512 // number of single_float_search()
 #define INTEGER_SAMPLES_PER_SLICE 4096 // number of integers to sample for single float search
+
+// For deconstruction
+// experiments show that if it does not converge after
+// 94 it probably will not converge (tested up to 2000)
+#define NRMAX 95
+#define FLOAT_TOL 0.0012f
 
 // Smooth generation of random floats in a range
 // by dividing doubles then casting
@@ -121,7 +132,7 @@ typedef struct deconHarness {
 deconHarness decon_rsqrt(float x, int NRmax, uint32_t magic, float tol);
 
 // Sampling function prototype for draws of decon_rsqrt()
-void sample_decon_rsqrt(int draws, int NRmax, uint32_t base_magic, float min, float max);
+void sample_decon_rsqrt(int draws, int NRmax, float min, float max, float tol);
 
 // Function prototypes for historical methods
 float MagicISR(float x, int NR);
