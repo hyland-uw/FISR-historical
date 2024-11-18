@@ -135,7 +135,6 @@ deconHarness decon_rsqrt(float x, int NRmax, uint32_t magic, float tol);
 void sample_decon_rsqrt(int draws, int NRmax, float min, float max, float tol);
 
 // Function prototypes for historical methods
-float MagicISR(float x, int NR);
 float BlinnISR(float x, int NR);
 float QuakeISR(float x, int NR);
 float withoutDivISR(float x, int NR);

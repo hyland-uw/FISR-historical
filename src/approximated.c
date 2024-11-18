@@ -7,24 +7,6 @@
 //// all should return:
 ////     a float which is an approximation of 1/sqrt(x)
 
-//Kahan's "Magic" square root
-// See http://www.arithmazium.org/library/lib/wk_square_root_aug80.pdf (1980)
-// may have a predecessor in the 1970s in UNIX Version 5
-// https://minnie.tuhs.org/cgi-bin/utree.pl?file=V5/usr/source/s3/sqrt.s
-float MagicISR(float x, int NR) {
-    int magic = 0x1FBF8300;
-    union { float f; uint32_t u; } y = {x};
-    y.u = magic - (y.u >> 1);
-    while (NR > 0) {
-        y.f = (y.f + (x / y.f))/2;
-        NR--;
-    }
-    // Kahan's magic sqrt is for a square root, not an inverse sqrt
-    // We want to compare the bit shifting properly so we reciprocate at the end
-    return  1.0f / y.f;
-}
-
-
 // FISR demonstrating the logaritmic nature of the floating-point numbers
 // The constant chosen is not "magic" but that which replaces the lost
 // exponents from the shift of the number as an integer.
@@ -115,7 +97,6 @@ it is now at https://gist.github.com/Protonk/dfbcab17986777ff997f24dcdd8e3bbc
 // we are testing.
 
 ISREntry isr_table[] = {
-    {"MagicISR", MagicISR},
     {"BlinnISR", BlinnISR},
     {"QuakeISR", QuakeISR},
     {"withoutDivISR", withoutDivISR},
