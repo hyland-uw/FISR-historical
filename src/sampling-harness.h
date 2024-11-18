@@ -80,37 +80,6 @@ uint32_t sample_integer_range(uint32_t min, uint32_t max) {
     }
 }
 
-uint32_t sample_integer_range_with_peak(uint32_t center, uint32_t lower, uint32_t upper) {
-    if (lower > upper) {
-        uint32_t temp = lower;
-        lower = upper;
-        upper = temp;
-    }
-
-    uint32_t range = upper - lower + 1;
-
-    // Ensure center is within bounds
-    if (center < lower) center = lower;
-    if (center > upper) center = upper;
-
-    // Calculate relative position of center within the range
-    uint32_t center_offset = center - lower;
-
-    // Generate two random numbers
-    uint32_t r1 = sample_integer_range(lower, upper);
-    uint32_t r2 = sample_integer_range(lower, upper);
-
-    // Use the average of the two random numbers for triangular distribution
-    uint32_t offset = (r1 + r2) / 2;
-
-    // Adjust offset based on center position
-    if (offset < center_offset) {
-        return lower + offset;
-    } else {
-        return upper - (range - 1 - offset);
-    }
-}
-
 float minimal_rsqrt(float input, uint32_t magic, int NR) {
     union { float f; uint32_t u; } y = {input};
     y.u = magic - (y.u >> 1);

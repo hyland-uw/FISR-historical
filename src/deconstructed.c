@@ -102,7 +102,7 @@ void sample_decon_rsqrt(int draws, int NRmax, float min, float max, float tol) {
     // Define our x here, which will change for each draw.
     float x;
 
-    printf("input,reference,initial,final,iters,magic_number\n");
+    printf("input,reference,initial,final,iters,magic\n");
 
     for (int i = 0; i < draws; i++) {
         // we also have a smooth uniform distribution

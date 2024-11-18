@@ -13,13 +13,14 @@ sort_and_dedupe <- function(df, column_name) {
   return(df_deduped)
 }
 
+approximated <- sort_and_dedupe(read.csv("../data/approximated.csv"), "input")
+enumerated <- sort_and_dedupe(read.csv("../data/enumerated.csv"), "input")
 
+## these will have duplicate floats by design
 sliced <- read.csv("../data/sliced.csv")
-sliced <- sort_and_dedupe(sliced, "input")
-enumerated <- read.csv("../data/enumerated.csv")
-enumerated <- sort_and_dedupe(enumerated, "input")
+sliced <- sliced[!duplicated(sliced[,c("input", "magic")]), ]
+
 deconstructed <- read.csv("../data/deconstructed.csv")
-deconstructed <- sort_and_dedupe(deconstructed, "input")
-approximated <- read.csv("../data/approximated.csv")
-approximated <- sort_and_dedupe(approximated, "input")
+
+
 
