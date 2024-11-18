@@ -10,6 +10,10 @@ The code and data here are components of a larger investigation into the history
 
 Run `make` in the base directory to generate csvs in the data directory. Sampling parameters are set in the sampling-harness.h file.
 
+### Compilation note
+
+This project is on an M1 mac, so the makefile has specific settings to use OpenMP. Adjust those for your system.
+
 ### Specific files
 
 C code:
