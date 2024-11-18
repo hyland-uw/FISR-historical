@@ -1,5 +1,6 @@
 .DS_Store
 .gitattributes
+.zed
 src/fisr
 fisrvenv/*
 bin/*
