@@ -98,44 +98,77 @@ deconHarness decon_rsqrt(float x, int NRmax, uint32_t magic, float tol) {
     return result;
 }
 
+typedef struct {
+    float input;
+    float reference;
+    float initial_approx;
+    float output;
+    unsigned int NR_iters;
+    uint32_t magic;
+} SampleResult;
+
 void sample_decon_rsqrt(int draws, int NRmax, float min, float max, float tol) {
-    // Define our x here, which will change for each draw.
-    float x;
+    SampleResult* results = malloc(sizeof(SampleResult) * draws);
+    int valid_results = 0;
 
-    printf("input,reference,initial,final,iters,magic\n");
+    #pragma omp parallel
+    {
+        // Thread-local storage for results
+        SampleResult* local_results = malloc(sizeof(SampleResult) * draws / omp_get_num_threads());
+        int local_valid_results = 0;
 
-    for (int i = 0; i < draws; i++) {
-        // we also have a smooth uniform distribution
-        // with uniformRange()
-        x = reciprocalRange(min, max);
-        // Select a magic random number
-        uint32_t magic = sample_integer_range(MIN_INT, MAX_INT);
-        // run the harness with above parameters
-        deconHarness result = decon_rsqrt(x, NRmax, magic, tol);
+        #pragma omp for
+        for (int i = 0; i < draws; i++) {
+            float x = uniformRange(min, max);
+            // Wider integer sample range than the others. we are looking for
+            // poor fits
+            uint32_t magic = sample_integer_range(1578000000, 1602000000);
 
-        // We want to be able to sample and then reject
-        // results which don't converge as this is for
-        // visualization
+            deconHarness result = decon_rsqrt(x, NRmax, magic, tol);
 
-        if (result.invalid_float_reached == true) {
-            continue;
+            if (!result.invalid_float_reached) {
+                SampleResult sample = {
+                    .input = x,
+                    .reference = result.reference,
+                    .initial_approx = result.initial_approx,
+                    .output = result.output,
+                    .NR_iters = result.NR_iters,
+                    .magic = magic
+                };
+                local_results[local_valid_results++] = sample;
+            }
         }
 
-        // because we used the result struct, this is reasonably tidy
-        printf("%f,%f,%f,%f,%u,0x%08X\n",
-               x,
-               result.reference,
-               result.initial_approx,
-               result.output,
-               result.NR_iters,
-               magic);
+        // Merge local results into global results
+        #pragma omp critical
+        {
+            for (int i = 0; i < local_valid_results && valid_results < draws; i++) {
+                results[valid_results++] = local_results[i];
+            }
+        }
+
+        free(local_results);
     }
+
+    // Print results
+    printf("input,reference,initial,final,iters,magic\n");
+    for (int i = 0; i < valid_results; i++) {
+        printf("%f,%f,%f,%f,%u,0x%08X\n",
+               results[i].input,
+               results[i].reference,
+               results[i].initial_approx,
+               results[i].output,
+               results[i].NR_iters,
+               results[i].magic);
+    }
+
+    free(results);
 }
 
 // Main function calls the sampler which
 // outputs via printf for a csv
 int main() {
     srand(time(NULL));
-    sample_decon_rsqrt(MAGIC_CONSTANT_DRAWS, NRMAX, FLOAT_START, FLOAT_END, FLOAT_TOL);
+    sample_decon_rsqrt(PAIR_DRAWS, NRMAX, FLOAT_START, FLOAT_END, FLOAT_TOL);
     return 0;
 }

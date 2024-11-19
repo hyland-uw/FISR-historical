@@ -19,22 +19,27 @@
 
 // The function repeats, so passing a few binades is sufficient to see
 // behavior.
-#define FLOAT_START 0.0125f
-#define FLOAT_END 2.0f
+#define FLOAT_START 0.001953125f
+#define FLOAT_END 1.0f
 
 // For selection of magic constant over many floats
 #define NUM_FLOATS 131072 // Number of floats to process (131072 is good)
 #define MAGIC_CONSTANT_DRAWS 32768 // number of integer constant samples per float
 
 // For visualizing
-#define FLOAT_SLICES 512 // number of single_float_search()
+#define FLOAT_SLICES 4096 // number of single_float_search()
 #define INTEGER_SAMPLES_PER_SLICE 4096 // number of integers to sample for single float search
 
 // For deconstruction
 // experiments show that if it does not converge after
 // 94 it probably will not converge (tested up to 2000)
 #define NRMAX 95
-#define FLOAT_TOL 0.0012f
+#define FLOAT_TOL 0.00012f
+#define PAIR_DRAWS 65536
+
+// for sampling halfone/halfthree
+//
+#define MAX_RESULTS 1000000 // Adjust as needed
 
 // Smooth generation of random floats in a range
 // by dividing doubles then casting

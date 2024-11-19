@@ -9,7 +9,7 @@ BIN_DIR = bin
 DATA_DIR = data
 
 # List of source files
-SOURCES = enumerated.c deconstructed.c approximated.c sliced.c
+SOURCES = enumerated.c deconstructed.c approximated.c sliced.c optimized.c
 
 # Generate names for executables and data files
 EXECUTABLES = $(SOURCES:%.c=$(BIN_DIR)/%)
