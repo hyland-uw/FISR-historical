@@ -1,8 +1,8 @@
 # Testing and instrumenting versions of the fast inverse square root
 
-![An artistic deconstruction](/plots/pastelerror.png)
+![An artistic deconstruction](/plots/header.png)
 
-This project is a work in progress.
+This project is a work in progress. Plot is made with deconstructed.c data pathway.
 
 The code and data here are components of a larger investigation into the history and re-use of the Fast Inverse Square Root, including [the most famous implementation found in Quake III Arena](https://en.wikipedia.org/wiki/Fast_inverse_square_root). The larger project website is here, at [0x5f37642f.com](https://0x5f37642f.com/).
 
