@@ -74,7 +74,7 @@ int main() {
     }
 
     // Print results as they come in
-    printf("input,y_naught,halfthree,halfone,error\n");
+    printf("input,initial,halfthree,halfone,error\n");
     for (int j = 0; j < FLOAT_SLICES; j++) {
         print_result_block(&result_blocks[j]);
     }

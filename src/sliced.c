@@ -46,6 +46,6 @@ void split_float_range(float start, float end, uint32_t slices, uint32_t samples
 
 int main() {
     srand(time(NULL));
-    split_float_range(FLOAT_START, FLOAT_END, FLOAT_SLICES, INTEGER_SAMPLES_PER_SLICE);
+    split_float_range(FLOAT_START, FLOAT_END, FLOAT_VIS_SLICES, INTEGER_SAMPLES_PER_SLICE);
     return 0;
 }

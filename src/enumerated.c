@@ -50,7 +50,7 @@ void full_float_search(int float_slices, int int_samples) {
         }
     }
 
-    printf("input,system,NR0,final,magic\n");
+    printf("input,reference,initial,final,magic\n");
     for (int i = 0; i < float_slices; i++) {
         printf("%e,%e,%e,%e,0x%08X\n",
                results[i].input,

@@ -26,7 +26,7 @@ All c files use `sampling-harness.h` which contains parameters for generation an
 
 Computes errors of historical FRSR style approximations over a range of floats, including Quake III's FISR. Data appears broken down by specific approximation:
 
-| ISR_function | input | reference | NR_0 | NR_1 |
+| ISR_function | input | reference | initial | final |
 | --- | --- | --- | --- | --- |
 | BlinnISR | 0.3209153 | 1.765244 | 1.858170 | 1.763802 |
 | QuakeISR | 0.3209153 | 1.765244 | 1.790600 | 1.764695 |
@@ -49,7 +49,7 @@ This format allows us to explore "bad" magic constants which produce poor approx
 #### Enumerated
 Does the unusual job of enumerating a "best" magic constant for a given float. Imagine the world's least efficient lookup table.
 
-| input | system | NR0 | final | magic |
+| input | reference | initial | final | magic |
 | --- | --- | --- | --- | --- |
 | 0.5134103 | 1.3956220 | 1.3957580 | 1.3956220 | 1597267869 |
 | 0.7665635 | 1.1421570 | 1.1421160 | 1.1421570 | 1597263768 |
@@ -61,7 +61,7 @@ For a given float (the dataset is not ordered by input) we compute the result of
 ### Optimized
 performs a grid search of the Newton Raphson constants (~1.5 and ~0.5) over a range of floats and a specific magic constant. Used to show the role of the NR approximation step.
 
-| input | y_naught | halfthree | halfone | error |
+| input | initial | halfthree | halfone | error |
 | --- | --- | --- | --- | --- |
 | 0.1954819 | 2.301005 | 1.495 | 0.495 | 0.0002761815 |
 | 0.1954819 | 2.301005 | 1.495 | 0.496 | 0.0013290450 |

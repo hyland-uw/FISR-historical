@@ -123,7 +123,7 @@ int main() {
     //
     // ISR_function, input, reference, NR_0, NR_1
     // BlinnISR, 1.25, 0.8944272, 0.9, 0.895
-    printf("ISR_function, input, reference, NR_0, NR_1\n");
+    printf("ISR_function, input, reference, initial, final\n");
 
     for (int draw = 0; draw < FLOAT_SLICES; draw++) {
         float input = reciprocalRange(FLOAT_START, FLOAT_END);

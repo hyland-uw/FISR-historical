@@ -28,7 +28,8 @@
 
 // For visualizing
 #define FLOAT_SLICES 8192 // number of single_float_search()
-#define INTEGER_SAMPLES_PER_SLICE 4096 // number of integers to sample for single float search
+#define FLOAT_VIS_SLICES 1024 // Smaller slices for sliced.c to keep file size down
+#define INTEGER_SAMPLES_PER_SLICE 2048 // number of integers to sample for single float search
 
 // For deconstruction
 // experiments show that if it does not converge after

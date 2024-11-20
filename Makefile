@@ -15,13 +15,19 @@ SOURCES = enumerated.c deconstructed.c approximated.c sliced.c optimized.c
 EXECUTABLES = $(SOURCES:%.c=$(BIN_DIR)/%)
 DATA_FILES = $(SOURCES:%.c=$(DATA_DIR)/%.csv)
 
+# Header files
+HEADERS = $(wildcard $(SRC_DIR)/*.h)
+
 # Default target
 all: $(EXECUTABLES) $(DATA_FILES)
 
 # Rule to compile source files
-$(BIN_DIR)/%: $(SRC_DIR)/%.c
+$(BIN_DIR)/%: $(SRC_DIR)/%.c $(HEADERS)
 	@mkdir -p $(BIN_DIR)
 	$(CC) $(CFLAGS) $< -o $@
+
+# Ensure all executables are recompiled if any header changes
+$(EXECUTABLES): $(HEADERS)
 
 # Rule to run executables and generate data files
 $(DATA_DIR)/%.csv: $(BIN_DIR)/%
