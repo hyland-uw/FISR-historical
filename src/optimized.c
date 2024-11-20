@@ -53,18 +53,20 @@ void print_result_block(const ResultBlock* block) {
 int main() {
     srand(time(NULL));
 
+    // Generate fixed grid
     const float half_extent = (GRID_SIZE * GRID_STEP) / 2;
     for (int i = 0; i < GRID_SIZE; i++) {
         x_grid[i] = (1.5 - half_extent) + i * GRID_STEP;
         y_grid[i] = (0.5 - half_extent) + i * GRID_STEP;
     }
 
-
+    // Generate range of inputs
     float inputs[FLOAT_SLICES];
     for (int i = 0; i < FLOAT_SLICES; i++) {
         inputs[i] = uniformRange(FLOAT_START, FLOAT_END);
     }
 
+    // Compute results in parallel and store in an object
     ResultBlock* result_blocks = malloc(FLOAT_SLICES * sizeof(ResultBlock));
     #pragma omp parallel for
     for (int j = 0; j < FLOAT_SLICES; j++) {

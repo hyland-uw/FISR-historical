@@ -1,5 +1,8 @@
 library(scales)
 
+
+deconstructed <- read.csv("../data/deconstructed.csv")
+
 ## from https://stackoverflow.com/a/9568659/1188479
 ## useful for false categorical coloring
 c25 <- c(
