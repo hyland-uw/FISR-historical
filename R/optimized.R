@@ -15,6 +15,8 @@ optimized$pair <- paste0("(",
 
 optimized$pair <- factor(optimized$pair)
 
+
+## good artistic plot of errors by grid location
 ggplot(optimized, aes(x = input,
                       y = error,
                       color = pair)) +
