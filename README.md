@@ -1,12 +1,10 @@
-# Testing and instrumenting versions of the fast inverse square root
+# Testing and visualizing the fast inverse square root
 
 The code and data here support a larger investigation into the history and re-use of the Fast Inverse Square Root, including [the most famous implementation found in Quake III Arena](https://en.wikipedia.org/wiki/Fast_inverse_square_root) located at [0x5f37642f.com](https://0x5f37642f.com/).
 
 ## Mode of operation
 
 Run `make` in the base directory to generate csvs in the data directory. Sampling parameters are set in the sampling-harness.h file.
-
-The project works only on single precision `float` variables, not doubles (As the integer representation is different)
 
 ### Compilation note
 
