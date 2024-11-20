@@ -74,7 +74,7 @@ Performs a grid search of the Newton Raphson constants (~1.5 and ~0.5) over a ra
 | 0.1954819 | 2.301005 | 1.495 | 0.497 | 0.0023820130 |
 | 0.1954819 | 2.301005 | 1.495 | 0.498 | 0.0034350870 |
 
-![An error heatmap across bins of floats](/plots/NR_heatmap.png)
+![An error heatmap across bins of floats](/plots/NR_heatmap_white.png)
 
 A basic grid search is used, but the code can be modified for a more sophisticated search. 1.5 and 0.5 are optimal over most of the range, which makes older deviations from that interesting. Slicing the data like this allows us to clearly see the optimality of 0.5 and 1.5.
 
