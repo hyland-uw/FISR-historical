@@ -117,15 +117,7 @@ float FISR(const char *name, float x, int NR) {
 }
 
 int main() {
-    // Draw parameters from the sampling harness
-    int num_draws = NUM_FLOATS;
-    float min_input = FLOAT_START;  // This will be adjusted to FLT_MIN if it's smaller
-    float max_input = FLOAT_END;
 
-    if (min_input >= max_input) {
-        fprintf(stderr, "Error: min_input must be less than max_input\n");
-        return 1;
-    }
     srand(time(NULL));
     // Prints in tidy format, e.g.:
     //
@@ -133,15 +125,15 @@ int main() {
     // BlinnISR, 1.25, 0.8944272, 0.9, 0.895
     printf("ISR_function, input, reference, NR_0, NR_1\n");
 
-    for (int draw = 0; draw < num_draws; draw++) {
-        float input = reciprocalRange(min_input, max_input);
+    for (int draw = 0; draw < FLOAT_SLICES; draw++) {
+        float input = reciprocalRange(FLOAT_START, FLOAT_END);
         float reference = 1.0f / sqrtf(input);
 
         for (int i = 0; isr_table[i].name != NULL; i++) {
             float result_nr0 = FISR(isr_table[i].name, input, 0);
             float result_nr1 = FISR(isr_table[i].name, input, 1);
 
-            printf("%s, %.6e, %.7e, %.6e, %.6e\n",
+            printf("%s, %e, %e, %e, %e\n",
                    isr_table[i].name, input, reference, result_nr0, result_nr1);
         }
     }

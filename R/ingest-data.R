@@ -13,7 +13,7 @@ sort_and_dedupe <- function(df, column_name) {
   return(df_deduped)
 }
 
-approximated <- sort_and_dedupe(read.csv("../data/approximated.csv"), "input")
+approximated <- read.csv("../data/approximated.csv")
 enumerated <- sort_and_dedupe(read.csv("../data/enumerated.csv"), "input")
 
 ## these will have duplicate floats by design
