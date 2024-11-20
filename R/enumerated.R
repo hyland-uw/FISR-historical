@@ -2,10 +2,17 @@
 enumerated <- read.csv("../data/enumerated.csv")
 enumerated <- enumerated[!duplicated(enumerated[,c("input", "magic")]), ]
 
-ggplot(enumerated) +
-  geom_point(aes(x = input, y = magic), shape = ".", alpha = 0.8) +
-  guides(color = "none") + ylim(1.5965e+09, 1.5985e+09)
 
+ggplot(enumerated,
+       aes(x = magic, y = (initial - reference) / reference )) +
+  geom_point(shape = ".")
 
-ggplot(enumerated[enumerated[,"input"] > 2e-08, ], aes(x = magic, y = error)) +
-  geom_bin2d(bins = 80) + guides(fill = "none")
+ggplot(enumerated,
+       aes(x = magic,
+           y = (initial - reference) / reference )) +
+  geom_point(shape = ".") +
+  geom_density_2d(linewidth = 1.25, bins = 15) +
+  xlab("Magic Constant") + 
+  ylab("Relative Error") + 
+  labs(title = "Distribution of error across generated constants")
+ggsave("../plots/enumerated_error.png")

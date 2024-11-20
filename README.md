@@ -62,7 +62,9 @@ Does the unusual job of enumerating a "best" magic constant for a given float. I
 | 0.5133603 | 1.3956900 | 1.3957830 | 1.3956900 | 1597267666 |
 | 1.2038200 | 0.9114215 | 0.9114995 | 0.9114215 | 1597399913 |
 
-For a given float (the dataset is not ordered by input) we compute the result of many different magic constants. For an input float there is a "best" magic constant which we determine.
+![Distribution of errors by magic constant](/plots/enumerated_error.png)
+
+For a given float (the dataset is not ordered by input) we compute the result of many different magic constants. For an input float there is a "best" magic constant which we determine. This also allows us to look at constants across a large range of floats.
 
 #### Optimized
 Performs a grid search of the Newton Raphson constants (~1.5 and ~0.5) over a range of floats and a specific magic constant. Used to show the role of the NR approximation step.
