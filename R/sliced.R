@@ -1,5 +1,6 @@
-sliced <- read.csv("~/Desktop/FISR-historical/data/sliced.csv")
-sliced <- sliced[order(sliced$float), ]
+## these will have duplicate floats by design
+sliced <- read.csv("../data/sliced.csv")
+sliced <- sliced[!duplicated(sliced[,c("input", "magic")]), ]
 
 ## from https://stackoverflow.com/a/9568659/1188479
 ## useful for false categorical coloring

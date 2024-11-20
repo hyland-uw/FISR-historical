@@ -1,5 +1,4 @@
-library(tidyr)
-
+### old plotting with base R.
 
 # q3a <- read.csv("~/Desktop/FISR-historical/data/FISR-data.csv", header=TRUE)
 # ## q3a <- ### load data in to this variable

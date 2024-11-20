@@ -20,11 +20,13 @@ C code:
 * approximated.c plots performance of historical FRSR style approximations over a range of floats.
 * deconstructed.c replaces the usual iteration limit of 1-2 Newton-Raphson iterations with iteration to a tolerance, which supports plotting the space for random inputs and magic constants (which produce better or worse approximations).
 * enumerated.c does the unusual job of enumerating a "best" magic constant for a given float. Imagine the world's least efficient lookup table.
+* optimized.c performs a grid search of the Newton Raphson constants (~1.5 and ~0.5) over a range of floats and a specific magic constant. Used to show the role of the NR approximation step.
 * sliced.c maps the performance of a range of magic constants across sets of floats to visualize slices of the output.
 * sampling-harness.h contains utility methods for sampling floats and integers as well as headers for some functions we use to sample.
 
 R code:
-* Currently the R code in the repository works with old datasets where I used an elaborate method to change the magic constant for artsy purposes. It is being re-written to use the new sampling methods.
+* R files to plot the associated data have the same names (approximated.c -> approximated.csv -> approximated.R).
+The graphing library ggplot2 is used for most plots, with a legacy file (FISR-plotting.R) that contains base R plots.
 
 ## Future directions
 
