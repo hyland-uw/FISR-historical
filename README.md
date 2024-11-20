@@ -33,6 +33,10 @@ Computes errors of historical FRSR style approximations over a range of floats, 
 | withoutDivISR | 0.3209153 | 1.765244 | 1.809832 | 1.763541 |
 | optimalFISR | 0.3209153 | 1.765244 | 1.608169 | 1.765233 |
 
+![A comparison of three FISR choices](/plots/big_three_compared.png)
+
+With this data, we can cleanly plot different approximations and see their error over an input range.
+
 #### Deconstructed
 
 Replaces the usual iteration limit of 1-2 Newton-Raphson iterations with iteration to a tolerance, which supports plotting the space for random inputs and magic constants.
@@ -44,7 +48,9 @@ Replaces the usual iteration limit of 1-2 Newton-Raphson iterations with iterati
 | 0.181007 | 2.350457 | 0.591144 | 2.350457 | 7 | 1580466735 |
 | 0.629445 | 1.260437 | 0.655565 | 1.260436 | 5 | 1589142732 |
 
-This format allows us to explore "bad" magic constants which produce poor approximations. The number of iterations to reach the right answer is a gross measure of the poor fit of the approximation.
+![Iteration counts over the space of inputs](/plots/pastelerror.png)
+
+This format allows us to explore "bad" magic constants which produce poor approximations. The number of iterations to reach the right answer is a gross measure of the poor fit of the approximation. Visually this can produce some striking representations of the NR space.
 
 #### Enumerated
 Does the unusual job of enumerating a "best" magic constant for a given float. Imagine the world's least efficient lookup table.
@@ -59,7 +65,7 @@ Does the unusual job of enumerating a "best" magic constant for a given float. I
 For a given float (the dataset is not ordered by input) we compute the result of many different magic constants. For an input float there is a "best" magic constant which we determine.
 
 #### Optimized
-performs a grid search of the Newton Raphson constants (~1.5 and ~0.5) over a range of floats and a specific magic constant. Used to show the role of the NR approximation step.
+Performs a grid search of the Newton Raphson constants (~1.5 and ~0.5) over a range of floats and a specific magic constant. Used to show the role of the NR approximation step.
 
 | input | initial | halfthree | halfone | error |
 | --- | --- | --- | --- | --- |
