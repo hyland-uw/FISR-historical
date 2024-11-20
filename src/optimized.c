@@ -2,61 +2,81 @@
 
 typedef struct {
     float input;
+    float y_naught;
     float halfthree;
     float halfone;
     float error;
 } Result;
 
-void test_half_values(uint32_t slices, uint32_t magic) {
-    Result results[MAX_RESULTS];
-    int result_count = 0;
+typedef struct {
+    float input;
+    Result results[GRID_SIZE*GRID_SIZE];
+} ResultBlock;
 
-    #pragma omp parallel
-    {
-        Result local_results[MAX_RESULTS / omp_get_max_threads()];
-        int local_count = 0;
 
-        #pragma omp for
-        for (uint32_t i = 0; i < slices; i++) {
-            float input = reciprocalRange(FLOAT_START, FLOAT_END);
-            union { float f; uint32_t u; } y = {input};
-            y.u = magic - (y.u >> 1);
-            float system = 1.0f / sqrtf(input);
+float x_grid[GRID_SIZE];
+float y_grid[GRID_SIZE];
 
-            for (float halfthree = 1.3f; halfthree <= 1.65f; halfthree += 0.05f) {
-                for (float halfone = 0.3f; halfone <= 0.7f; halfone += 0.05f) {
-                    float yf_temp = y.f * (halfthree - halfone * input * y.f * y.f);
-                    float error = fabsf((yf_temp - system) / system); // Changed to relative error
+void compute_result_block(float input, uint32_t magic, ResultBlock* block) {
+    float halfthree, halfone, approx, error, system, y_naught;
+    int results_counter = 0;
+    // Calculate system and y_naught once for this input
+    system = 1.0f / sqrtf(input);
+    union { float f; uint32_t u; } y = {input};
+    y.u = magic - (y.u >> 1);
+    y_naught = y.f;
 
-                    if (local_count < MAX_RESULTS / omp_get_max_threads()) {
-                        local_results[local_count].input = input;
-                        local_results[local_count].halfthree = halfthree;
-                        local_results[local_count].halfone = halfone;
-                        local_results[local_count].error = error;
-                        local_count++;
-                    }
-                }
-            }
+    for (int i = 0; i < GRID_SIZE; i++) {
+        halfthree = x_grid[i];
+        for (int j = 0; j < GRID_SIZE; j++) {
+            halfone = y_grid[j];
+            approx = y.f * (halfthree - halfone * input * y.f * y.f);
+            error = fabsf((approx - system) / system);
+            block->results[results_counter] = (Result){input, y_naught, halfthree, halfone, error};
+            results_counter++;
         }
-
-        #pragma omp critical
-        {
-            for (int i = 0; i < local_count && result_count < MAX_RESULTS; i++) {
-                results[result_count++] = local_results[i];
-            }
-        }
-    }
-
-    // Print results
-    printf("input,halfthree,halfone,error\n");
-    for (int i = 0; i < result_count; i++) {
-        printf("%e,%.2f,%.2f,%e\n", results[i].input, results[i].halfthree, results[i].halfone, results[i].error);
     }
 }
 
+void print_result_block(const ResultBlock* block) {
+    for (int i = 0; i < GRID_SIZE*GRID_SIZE; i++) {
+        printf("%e,%e,%e,%e,%e\n",
+               block->results[i].input,
+               block->results[i].y_naught,
+               block->results[i].halfthree,
+               block->results[i].halfone,
+               block->results[i].error);
+    }
+    printf("\n");
+}
 
 int main() {
     srand(time(NULL));
-    test_half_values(FLOAT_SLICES/2, 0x5f3759df);
+
+    const float half_extent = (GRID_SIZE * GRID_STEP) / 2;
+    for (int i = 0; i < GRID_SIZE; i++) {
+        x_grid[i] = (1.5 - half_extent) + i * GRID_STEP;
+        y_grid[i] = (0.5 - half_extent) + i * GRID_STEP;
+    }
+
+
+    float inputs[FLOAT_SLICES];
+    for (int i = 0; i < FLOAT_SLICES; i++) {
+        inputs[i] = uniformRange(FLOAT_START, FLOAT_END);
+    }
+
+    ResultBlock* result_blocks = malloc(FLOAT_SLICES * sizeof(ResultBlock));
+    #pragma omp parallel for
+    for (int j = 0; j < FLOAT_SLICES; j++) {
+        compute_result_block(inputs[j], 0x5f3759df, &result_blocks[j]);
+    }
+
+    // Print results as they come in
+    printf("input,y_naught,halfthree,halfone,error\n");
+    for (int j = 0; j < FLOAT_SLICES; j++) {
+        print_result_block(&result_blocks[j]);
+    }
+
+    free(result_blocks);
     return 0;
 }

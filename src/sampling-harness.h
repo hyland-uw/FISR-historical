@@ -19,15 +19,15 @@
 
 // The function repeats, so passing a few binades is sufficient to see
 // behavior.
-#define FLOAT_START 0.001953125f
-#define FLOAT_END 1.0f
+#define FLOAT_START 0.1953125f
+#define FLOAT_END 1.5f
 
 // For selection of magic constant over many floats
 #define NUM_FLOATS 131072 // Number of floats to process (131072 is good)
 #define MAGIC_CONSTANT_DRAWS 32768 // number of integer constant samples per float
 
 // For visualizing
-#define FLOAT_SLICES 4096 // number of single_float_search()
+#define FLOAT_SLICES 8192 // number of single_float_search()
 #define INTEGER_SAMPLES_PER_SLICE 4096 // number of integers to sample for single float search
 
 // For deconstruction
@@ -39,7 +39,8 @@
 
 // for sampling halfone/halfthree
 //
-#define MAX_RESULTS 1000000 // Adjust as needed
+#define GRID_SIZE 10
+#define GRID_STEP 0.001f
 
 // Smooth generation of random floats in a range
 // by dividing doubles then casting
@@ -52,6 +53,7 @@ float uniformRange (float min, float max) {
 }
 
 // Draw for a reciprocal distribution https://en.wikipedia.org/wiki/Reciprocal_distribution
+// this implementation is a bit dodgy
 float reciprocalRange(float min, float max) {
     // Convert to double for calculation
     // to avoid potential overflow.

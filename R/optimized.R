@@ -3,10 +3,10 @@ library(dplyr)
 library(gganimate)
 
 optimized <- read.csv("../data/optimized.csv")
+
+## helps with geom_path plotting
 optimized <- optimized[order(optimized[, "input"]), ]
 
-optimized$distance <- with(optimized,
-                           sqrt((halfone - 0.5)^2 + (halfthree - 1.5)^2))
 optimized$pair <- paste0("(",
                          optimized$halfthree,
                          ", ",
@@ -14,11 +14,6 @@ optimized$pair <- paste0("(",
                          ")")
 
 optimized$pair <- factor(optimized$pair)
-
-
-ggplot(optimized, aes(x = input, y = log(error), color = as.factor(halfthree))) + geom_col() + guides(color = "none")
-
-ggplot(optimized, aes(x = input, y = log(error), color = distance)) + geom_point(shape = ".") + guides(color = "none") + facet_grid(vars(halfone), vars(halfthree))
 
 ggplot(optimized, aes(x = input, y = error, color = pair)) + geom_path() + guides(color = "none") + coord_polar(theta = "x")
 
@@ -36,12 +31,10 @@ create_single_heatmap <- function(data, title = NULL) {
   ggplot(data, aes(x = halfone, y = halfthree, fill = error)) +
     geom_tile() +
     scale_fill_gradient2(low = "blue", mid = "white", high = "red", 
-                         midpoint = median(data$error), 
-                         trans = "log10") +
+                         midpoint = median(data$error)) +
     labs(title = title,
          x = "Halfone",
-         y = "Halfthree",
-         fill = "Error (log scale)") +
+         y = "Halfthree") +
     theme_minimal() +
     theme(axis.text.x = element_text(angle = 45, hjust = 1))
 }
@@ -84,9 +77,9 @@ anim_save("../plots/animated_heatmap.gif", animation = animated_plot)
 print(create_binned_heatmaps(optimized, 9))
 
 ## generate a range of errors against params
-ggplot(optimized, aes(x = as.factor(halfone),
+ggplot(optimized, aes(x = halfone,
                       y = log(error),
-                      color = as.factor(halfthree))) +
+                      color = halfthree)) +
   geom_col() + guides(color = "none")
 
 ####
