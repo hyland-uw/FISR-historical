@@ -1,4 +1,4 @@
-#include "sampling-harness.h"
+#include "util-harness.h"
 
 void single_float_search(float input, uint32_t samples) {
     float reference = 1.0f / sqrtf(input);

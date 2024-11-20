@@ -11,6 +11,9 @@ DATA_DIR = data
 # List of source files
 SOURCES = enumerated.c deconstructed.c approximated.c sliced.c optimized.c
 
+# Utility file to be compiled with each source
+UTILS = utils.c
+
 # Generate names for executables and data files
 EXECUTABLES = $(SOURCES:%.c=$(BIN_DIR)/%)
 DATA_FILES = $(SOURCES:%.c=$(DATA_DIR)/%.csv)
@@ -21,10 +24,10 @@ HEADERS = $(wildcard $(SRC_DIR)/*.h)
 # Default target
 all: $(EXECUTABLES) $(DATA_FILES)
 
-# Rule to compile source files
-$(BIN_DIR)/%: $(SRC_DIR)/%.c $(HEADERS)
+# Rule to compile source files with utils.c
+$(BIN_DIR)/%: $(SRC_DIR)/%.c $(SRC_DIR)/$(UTILS) $(HEADERS)
 	@mkdir -p $(BIN_DIR)
-	$(CC) $(CFLAGS) $< -o $@
+	$(CC) $(CFLAGS) $< $(SRC_DIR)/$(UTILS) -o $@
 
 # Ensure all executables are recompiled if any header changes
 $(EXECUTABLES): $(HEADERS)

@@ -1,4 +1,4 @@
-#include "sampling-harness.h"
+#include "util-harness.h"
 
 /*
 This harness allows us to deconstruct the working and output of an idealized FISR.

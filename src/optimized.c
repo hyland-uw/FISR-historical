@@ -1,4 +1,4 @@
-#include "sampling-harness.h"
+#include "util-harness.h"
 
 typedef struct {
     float input;
