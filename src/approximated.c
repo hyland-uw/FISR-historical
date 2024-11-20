@@ -97,11 +97,11 @@ it is now at https://gist.github.com/Protonk/dfbcab17986777ff997f24dcdd8e3bbc
 // we are testing.
 
 ISREntry isr_table[] = {
-    {"BlinnISR", BlinnISR},
-    {"QuakeISR", QuakeISR},
-    {"withoutDivISR", withoutDivISR},
-    {"optimalFISR", optimalFISR},
-    {"MorozISR", MorozISR},
+    {"Blinn", BlinnISR},
+    {"QuakeIII", QuakeISR},
+    {"withoutDiv", withoutDivISR},
+    {"optimal_grid", optimalFISR},
+    {"Moroz", MorozISR},
     {NULL, NULL} // Sentinel to mark the end of the array
 };
 
