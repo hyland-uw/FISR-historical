@@ -15,7 +15,14 @@ optimized$pair <- paste0("(",
 
 optimized$pair <- factor(optimized$pair)
 
-ggplot(optimized, aes(x = input, y = error, color = pair)) + geom_path() + guides(color = "none") + coord_polar(theta = "x")
+ggplot(optimized, aes(x = input,
+                      y = error,
+                      color = pair)) +
+  geom_path() +
+  guides(color = "none") +
+  xlim(0.25, 1) +
+  coord_polar(theta = "x") +
+  theme_void()
 
 # Function to prepare and bin the data
 prepare_binned_data <- function(data, num_bins) {

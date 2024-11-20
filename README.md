@@ -1,10 +1,8 @@
 # Testing and instrumenting versions of the fast inverse square root
 
-![An artistic deconstruction](/plots/header.png)
-
-This project is a work in progress. Plot is made with deconstructed.c data pathway.
-
 The code and data here are components of a larger investigation into the history and re-use of the Fast Inverse Square Root, including [the most famous implementation found in Quake III Arena](https://en.wikipedia.org/wiki/Fast_inverse_square_root). The larger project website is here, at [0x5f37642f.com](https://0x5f37642f.com/).
+
+This project is a work in progress.
 
 ## Mode of operation
 
@@ -76,6 +74,8 @@ Performs a grid search of the Newton Raphson constants (~1.5 and ~0.5) over a ra
 | 0.1954819 | 2.301005 | 1.495 | 0.497 | 0.0023820130 |
 | 0.1954819 | 2.301005 | 1.495 | 0.498 | 0.0034350870 |
 
+![An error heatmap across bins of floats](/plots/NR_heatmap.png)
+
 A basic grid search is used, but the code can be modified for a more sophisticated search. 1.5 and 0.5 are optimal over most of the range, which makes older deviations from that interesting.
 
 #### Sliced
@@ -88,7 +88,9 @@ Maps the performance of a range of magic constants across sets of floats to visu
 | 1.712697 | 9.883186e-05 | 1597165521 |
 | 1.712697 | 3.928469e-03 | 1597712212 |
 
-In contrast to the above, these slices compute a range of outputs for a given float. So for an input `1.712697` many thousands of magic constants are used and the approximation generated. This can be used for plotting curves.
+![Deciles of error across possible inputs](/plots/decile.png)
+
+In contrast to the above, these slices compute a range of outputs for a given float. So for an input `1.712697` many thousands of magic constants are used and the approximation generated. This can be used for plotting curves across floats, which is difficult to do with the other data slices.
 
 ## Future directions
 
