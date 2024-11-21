@@ -25,8 +25,6 @@ ggplot(deconstructed,
   ylab("Error before NR Iteration") +
   xlab("Input float")
 
-
-
 ## from https://stackoverflow.com/a/9568659/1188479
 ## useful for false categorical coloring
 c25 <- c(
@@ -57,13 +55,15 @@ ggplot(deconstructed,
   theme_void()
 
 ## bucketing into different sizes is arty
-size_bucket <- round(runif(20, min = 0.1, max = 10), 2)
+size_bucket <- round(runif(20, min = 0.05, max = 8), 2)
 
 ggplot(deconstructed,
-        aes(x = magic,
-            y = input,
-            color = factor(iters, levels = sort(unique(iters), decreasing = TRUE)),
-            size = factor((as.numeric(rownames(deconstructed)) - 1) %% length(size_bucket) + 1))) +
-geom_point(shape = 15, alpha = 0.4) +
-guides(alpha = "none", color = "none", shape = "none", size = "none") +
-scale_size_manual(values = size_bucket) + theme_void()
+       aes(x = magic,
+           y = log(input),
+           color = factor(iters, levels = sort(unique(iters), decreasing = TRUE)),
+           size = factor((as.numeric(rownames(deconstructed)) - 1) %% length(size_bucket) + 1))) +
+  geom_point(shape = 16, alpha = 0.4) +
+  guides(alpha = "none", color = "none", shape = "none", size = "none") +
+  scale_size_manual(values = size_bucket) +
+  xlim(1.593e+09, max(deconstructed$magic)) +
+  theme_void()

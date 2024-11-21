@@ -4,3 +4,4 @@
 src/fisr
 fisrvenv/*
 bin/*
+data/*

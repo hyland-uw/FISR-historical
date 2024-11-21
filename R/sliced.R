@@ -1,6 +1,30 @@
 ## these will have duplicate floats by design
+library(dplyr)
+library(dplyr)
+
 sliced <- read.csv("../data/sliced.csv")
 sliced <- sliced[!duplicated(sliced[,c("input", "magic")]), ]
+divisble_limit <- nrow(sliced) - (nrow(sliced) %% 2048)
+sliced <- sliced[1:divisble_limit, ]
+
+sliced$error_rank <- ntile(sliced$error, 4)
+
+sliced$input_rank <- ntile(sliced$input, 128)
+sliced$magic_rank <- ntile(sliced$magic, 128)
+
+
+ggplot(sliced,
+       aes(x = input_rank,
+           y = magic_rank,
+           fill = error_rank)) +
+  geom_tile() +
+  theme_void() + guides(fill = "none")
+
+ggplot(sliced, aes(x = input_rank,
+                   fill = factor(error_rank))) +
+  geom_bar(position = "stack") +
+  guides(fill = "none") +
+  theme_void()
 
 ## from https://stackoverflow.com/a/9568659/1188479
 ## useful for false categorical coloring
@@ -22,9 +46,17 @@ c25 <- c(
 
 
 ## plot errors against magic constant, coloring for floats
-ggplot(data = sliced, aes(x = magic, y = error, color = as.factor(float))) +
+ggplot(data = sliced, aes(x = magic, y = error, color = as.factor(input))) +
   geom_point(shape = ".", alpha = 0.5) +
-  scale_color_manual(values = sample(rep(c25, 25))) +
+  scale_color_manual(values = sample(rep(c25, 250))) +
+  guides(color = "none")
+
+
+ggplot(data = sliced, aes(x = magic,
+                          y = error,
+                          color = cut(input, breaks = 64))) +
+  geom_point(shape = ".", alpha = 0.5) + 
+  scale_color_manual(values = sample(rep(c25, 250))) +
   guides(color = "none")
 
 # ## facet wrap is unweildy for large numbers of floats
@@ -75,6 +107,15 @@ ggplot(aggregate(error ~ input, sliced, range)) +
 
 
 
+
+
+error_col <- colorRampPalette(c("dodgerblue2", "red"))(length(unique(sliced$error_rank)))
+
+ggplot(sliced, aes(x = input_rank,
+                   y = error,
+                   color = factor(error_rank))) +
+  geom_col() + guides(color = "none") +
+  scale_color_manual(values=setNames(error_col, 1:max(sliced$error_rank)))
 
 
 
