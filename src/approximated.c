@@ -126,7 +126,7 @@ int main() {
     printf("ISR_function, input, reference, initial, final\n");
 
     for (int draw = 0; draw < FLOAT_SLICES; draw++) {
-        float input = reciprocalRange(FLOAT_START, FLOAT_END);
+        float input = logStratifiedSampler(FLOAT_START, FLOAT_END);
         float reference = 1.0f / sqrtf(input);
 
         for (int i = 0; isr_table[i].name != NULL; i++) {

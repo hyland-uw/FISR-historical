@@ -110,6 +110,10 @@ typedef struct {
 void sample_decon_rsqrt(int draws, int NRmax, float min, float max, float tol) {
     SampleResult* results = malloc(sizeof(SampleResult) * draws);
     int valid_results = 0;
+    float inputrange[draws];
+    for (int i = 0; i < draws; i++) {
+         inputrange[i] = logStratifiedSampler(min, max);
+    }
 
     #pragma omp parallel
     {
@@ -119,7 +123,7 @@ void sample_decon_rsqrt(int draws, int NRmax, float min, float max, float tol) {
 
         #pragma omp for
         for (int i = 0; i < draws; i++) {
-            float x = uniformRange(min, max);
+            float x = inputrange[i];
             // Wider integer sample range than the others. we are looking for
             // poor fits
             uint32_t magic = sample_integer_range(1578000000, 1602000000);

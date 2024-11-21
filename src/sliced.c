@@ -39,7 +39,7 @@ void split_float_range(float start, float end, uint32_t slices, uint32_t samples
     float current;
     printf("input, error, magic\n");
     for (uint32_t i = 0; i < slices; i++) {
-        current = reciprocalRange(start, end);
+        current = logStratifiedSampler(start, end);
         single_float_search(current, samples);
     }
 }

@@ -1,6 +1,22 @@
 approximated <- read.csv("../data/approximated.csv")
 
 
+
+
+
+x_intercepts <- c(2^seq(-6, 1, by = 0.5))
+x_intercepts <- x_intercepts[x_intercepts <= 1 & x_intercepts >= 0.03125]
+ggplot(approximated, aes(x = input,
+                         y = (final - reference) / reference,
+                         color = ISR_function)) +
+  geom_line() + 
+  geom_vline(xintercept = x_intercepts,
+             color = "gray",
+             linetype = "dashed") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  xlim(c(0.25, 1))
+
+
 ### plot the "big three"
 big_three <- c("Blinn", "QuakeIII", "Moroz")
 

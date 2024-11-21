@@ -63,7 +63,7 @@ int main() {
     // Generate range of inputs
     float inputs[FLOAT_SLICES];
     for (int i = 0; i < FLOAT_SLICES; i++) {
-        inputs[i] = uniformRange(FLOAT_START, FLOAT_END);
+        inputs[i] = logStratifiedSampler(FLOAT_START, FLOAT_END);
     }
 
     // Compute results in parallel and store in an object

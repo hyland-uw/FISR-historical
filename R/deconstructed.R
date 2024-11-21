@@ -1,7 +1,31 @@
 library(scales)
-
+## force specific plotting order
+create_geom_points <- function(data, iter_range, shape, size, alpha = 1) {
+  lapply(iter_range, function(i) {
+    geom_point(data = data[data$iters == i, ],
+               shape = shape,
+               size = size,
+               alpha = alpha)
+  })
+}
 
 deconstructed <- read.csv("../data/deconstructed.csv")
+
+## from https://stackoverflow.com/a/23574127/1188479
+iter_colors <- colorRampPalette(c("dodgerblue2", "red"))(length(unique(deconstructed$iters)))
+ggplot(deconstructed,
+       aes(x = input,
+           y = initial - reference,
+           color = factor(iters))) +
+  create_geom_points(deconstructed, max(deconstructed$iters):1, 16, 2, 0.95) +
+  guides(alpha = "none") +
+  scale_color_manual(values=setNames(iter_colors, 1:max(deconstructed$iters))) +
+  labs(color = "Iteration\nCount",
+       title = "A poor guess can be low and still converge") +
+  ylab("Error before NR Iteration") +
+  xlab("Input float")
+
+
 
 ## from https://stackoverflow.com/a/9568659/1188479
 ## useful for false categorical coloring
@@ -21,15 +45,7 @@ c25 <- c(
   "darkorange4", "brown"
 )
 
-## force specific plotting order
-create_geom_points <- function(data, iter_range, shape, size, alpha = 1) {
-  lapply(iter_range, function(i) {
-    geom_point(data = data[data$iters == i, ],
-               shape = shape,
-               size = size,
-               alpha = alpha)
-  })
-}
+
 
 ## artistic plot of the range of outcomes
 ggplot(deconstructed,

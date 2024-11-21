@@ -10,6 +10,10 @@ typedef struct {
 
 void full_float_search(int float_slices, int int_samples) {
     Result* results = malloc(float_slices * sizeof(Result));
+    float inputrange[float_slices];
+    for (int i = 0; i < float_slices; i++) {
+        inputrange[i] = logStratifiedSampler(FLOAT_START, FLOAT_END);
+    }
 
     #pragma omp parallel
     {
@@ -18,7 +22,7 @@ void full_float_search(int float_slices, int int_samples) {
             float approx, error, best_error;
             float best_NR0, system, final, best_final;
             uint32_t magic;
-            float input = uniformRange(FLOAT_START, FLOAT_END);
+            float input = inputrange[i];
 
             system = 1.0f / sqrtf(input);
 

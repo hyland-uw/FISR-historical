@@ -19,8 +19,8 @@
 
 // The function repeats, so passing a few binades is sufficient to see
 // behavior.
-#define FLOAT_START 0.1953125f
-#define FLOAT_END 1.5f
+#define FLOAT_START 0.03125f
+#define FLOAT_END 1.0f
 
 // For selection of magic constant over many floats
 #define NUM_FLOATS 131072 // Number of floats to process (131072 is good)
@@ -36,7 +36,7 @@
 // 94 it probably will not converge (tested up to 2000)
 #define NRMAX 95
 #define FLOAT_TOL 0.00012f
-#define PAIR_DRAWS 65536
+#define PAIR_DRAWS 131072
 
 // for sampling halfone/halfthree
 //
@@ -47,6 +47,7 @@
 
 float uniformRange (float min, float max);
 float reciprocalRange(float min, float max);
+float logStratifiedSampler(float min, float max);
 uint32_t sample_integer_range(uint32_t min, uint32_t max);
 float minimal_rsqrt(float input, uint32_t magic, int NR);
 
