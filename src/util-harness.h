@@ -27,9 +27,11 @@
 #define MAGIC_CONSTANT_DRAWS 32768 // number of integer constant samples per float
 
 // For visualizing
-#define FLOAT_SLICES 8192 // number of single_float_search()
-#define FLOAT_VIS_SLICES 1024 // Smaller slices for sliced.c to keep file size down
-#define INTEGER_SAMPLES_PER_SLICE 1024 // number of integers to sample for single float search
+#define FLOAT_SLICES 8192 // number foroptimized/approximated
+#define FLOAT_VIS_SLICES 2048 // Smaller slices for sliced.c to keep file size down
+#define INTEGER_SAMPLES_PER_SLICE 2048 // number of integers to sample for single float search
+#define INTEGER_SELECTIONS 256 // winnow best performers
+#define CHUNK_SIZE 1000
 
 // For deconstruction
 // experiments show that if it does not converge after
