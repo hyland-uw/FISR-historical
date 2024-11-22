@@ -1,45 +1,44 @@
 library(tidyr)
 library(dplyr)
 
-sliced <- read.csv("../data/sliced.csv")
-sliced <- sliced[!duplicated(sliced[,c("input", "magic")]), ]
+### functions at the top
 
-## set these for equally sized ntile bins
-divisble_limit <- nrow(sliced) - (nrow(sliced) %% 2048)
-division <- 64
-
-##for some reason I couldn't do the above math inside the index
-sliced <- sliced[1:divisble_limit, ]
-
-
-## these power some existing plots but will be phased out
-sliced$error_rank <- ntile(sliced$error, 4)
-sliced$input_rank <- ntile(sliced$input, division)
-sliced$magic_rank <- ntile(sliced$magic, division)
-
-
-
-find_best_magic_constants <- function(sliced, ranks) {
-  rank_column <- paste0("rank_", ranks)
+# returns a df with rank_N and best_N columns
+find_best_magic_constants <- function(df, ranks) {
   
-  sliced %>%
-    arrange(input) %>%
-    mutate(!!rank_column := ntile(input, ranks)) %>%
+  rank_column <- "location"
+  best_column <- "best"
+  
+  df %>%
+    arrange(df) %>%
+    mutate(!!rank_column := ntile(df, ranks)) %>%
     group_by(!!sym(rank_column), magic) %>%
     summarize(total_error = sum(error), .groups = 'drop') %>%
     group_by(!!sym(rank_column)) %>%
     slice_min(order_by = total_error, n = 4) %>%
-    summarize(best_magic = floor(mean(magic))) %>%
+    summarize(!!best_column := floor(mean(magic))) %>%
     arrange(!!sym(rank_column))
 }
 
-magic_by_rank <- function(sliced, ranks) {
+create_median_dataset <- function(df) {
+  df %>%
+    group_by(input_rank) %>%
+    summarize(
+      median_input = median(input),
+      median_error = median(error),
+      median_magic = floor(median(magic)),
+      .groups = 'drop'
+    ) %>%
+    arrange(input_rank)
+}
+
+magic_by_rank <- function(df, ranks) {
   input_column <- paste0("input_", ranks)
   magic_column <- paste0("magic_", ranks)
   
-  best_magic_df <- sliced %>%
-    arrange(input) %>%
-    mutate(!!input_column := ntile(input, ranks)) %>%
+  best_magic_df <- df %>%
+    arrange(df) %>%
+    mutate(!!input_column := ntile(df, ranks)) %>%
     group_by(!!sym(input_column), magic) %>%
     summarize(total_error = sum(error), .groups = 'drop') %>%
     group_by(!!sym(input_column)) %>%
@@ -55,113 +54,80 @@ magic_by_rank <- function(sliced, ranks) {
 }
 
 
-
 ## within an input rank list, what are the difference in the magic constant?
 ## An input rank N will have N different magic constants, this determines
 ## the difference of one element and the mean of all
 diff_within_rank <- function(df, N, length = 256) {
-  # Convert input to character if it's not already
-  N <- as.character(N)
+  # Convert input to numeric if it's not already
+  N <- as.numeric(N)
+  # Call find_best_magic_constants() to get the best constants
+  ### for now this calls a dataframe which is not passed in as
+  ### an argument...
+  best_constants <- find_best_magic_constants(sliced, N)
+  # Calculate overall mean of best magic constants
+  overall_mean <- mean(best_constants$best)
+  total_locations <- nrow(best_constants)
   
-  # Dynamically create column names
-  rank_col <- paste0("input_", N)
-  value_col <- paste0("magic_", N)
+  # Calculate differences
+  diff_outside <- best_constants$best - 
+    (overall_mean * total_locations - best_constants$best) / (total_locations - 1)
   
-  # Ensure required columns exist
-  if (!all(c(rank_col, value_col) %in% names(df))) {
-    stop("Required columns are missing from the dataframe")
-  }
+  # Repeat the differences to match the original data length
+  output <- rep(diff_outside, each = length / N)
   
-  overall_mean <- mean(df[[value_col]])
-  total_rows <- nrow(df)
-  
-  df %>%
-    group_by(!!sym(rank_col)) %>%
-    summarize(
-      avg_within_rank = mean(!!sym(value_col)),
-      sum_within_rank = sum(!!sym(value_col)),
-      count_within_rank = n(),
-      .groups = "drop"
-    ) %>%
-    mutate(
-      avg_other_ranks = (overall_mean * total_rows - sum_within_rank) / (total_rows - count_within_rank),
-      diff_outside = avg_within_rank - avg_other_ranks
-    ) %>%
-    arrange(!!sym(rank_col)) %>%
-    pull(diff_outside) -> output
-  return(rep(output, each = length / as.numeric(N)))
+  return(output)
 }
-
 
 ## A higher rank will have more magic values
 ## this subtracts those from lower ranks, showing the
 ## difference across
-diff_across_ranks <- function(df, N1, N2, length = 256) {
-  # Convert inputs to character if they're not already
-  N1 <- as.character(N1)
-  N2 <- as.character(N2)
+diff_across_ranks <- function(N1, N2, length = 256) {
+  # Convert inputs to numeric
+  N1 <- as.numeric(N1)
+  N2 <- as.numeric(N2)
   
-  # Dynamically create column names
-  rank_col1 <- paste0("input_", N1)
-  rank_col2 <- paste0("input_", N2)
-  value_col1 <- paste0("magic_", N1)
-  value_col2 <- paste0("magic_", N2)
+  # Get best magic constants for both N1 and N2
+  best_constants_N1 <- find_best_magic_constants(sliced, N1)
+  best_constants_N2 <- find_best_magic_constants(sliced, N2)
   
-  # Ensure all required columns exist
-  required_cols <- c(rank_col1, rank_col2, value_col1, value_col2)
-  if (!all(required_cols %in% names(df))) {
-    stop("One or more required columns are missing from the dataframe")
+  # Ensure the number of rows in best_constants_N2 matches N2
+  if (nrow(best_constants_N2) != N2) {
+    stop("Number of rows in best_constants_N2 does not match N2")
   }
   
-  # Perform the calculation
-  df %>%
-    group_by(!!sym(rank_col2)) %>%
-    summarize(
-      avg_value1 = mean(!!sym(value_col1)),
-      avg_value2 = mean(!!sym(value_col2)),
-      .groups = "drop"
-    ) %>%
-    mutate(diff = avg_value1 - avg_value2) %>%
-    arrange(!!sym(rank_col2)) %>%
-    pull(diff) -> output
-  return(rep(output, each = length / as.numeric(N2)))
+  # Calculate differences between best magic constants
+  diff <- best_constants_N1$best - best_constants_N2$best
+  
+  # Repeat the differences to match the original data length
+  output <- rep(diff, each = length / N2)
+  
+  return(output)
 }
 
 
-diced <- magic_by_rank(sliced, 4)
-diced <- cbind(diced, magic_by_rank(sliced, 8))
-diced <- cbind(diced, magic_by_rank(sliced, 32))
-diced <- cbind(diced, magic_by_rank(sliced, 64))
-diced <- cbind(diced, magic_by_rank(sliced, 256))
-
-# Usage
-best_magic <- find_best_magic_constants(sliced)
-
-ggplot(best_magic,
-       aes(x = input_rank,
-           y = best_magic)) +
-  geom_point()
-
-
-create_median_dataset <- function(sliced) {
-  sliced %>%
-    group_by(input_rank) %>%
-    summarize(
-      median_input = median(input),
-      median_error = median(error),
-      median_magic = floor(median(magic)),
-      .groups = 'drop'
-    ) %>%
-    arrange(input_rank)
+create_diff_dataframe <- function(diced) {
+  ranks <- c(4, 8, 32, 64, 256)
+  
+  # Calculate within-rank differences
+  within_diffs <- lapply(ranks, function(r) {
+    diff_within_rank(diced, r)
+  })
+  names(within_diffs) <- paste0("within_", ranks)
+  
+  # Calculate across-rank differences
+  across_diffs <- list()
+  for (i in 1:(length(ranks)-1)) {
+    for (j in (i+1):length(ranks)) {
+      col_name <- paste0(ranks[i], "_", ranks[j])
+      across_diffs[[col_name]] <- diff_across_ranks(ranks[i], ranks[j])
+    }
+  }
+  
+  # Combine all differences into a single dataframe
+  result <- bind_cols(c(within_diffs, across_diffs))
+  
+  return(result)
 }
-
-# Usage
-median_dataset <- create_median_dataset(sliced)
-
-merged_input <- median_dataset %>%
-  left_join(best_magic, by = "input_rank")
-
-ggplot(merged_input, aes(x = median_input, y = median_error)) + geom_point()
 
 ## from https://stackoverflow.com/a/9568659/1188479
 ## useful for false categorical coloring
@@ -180,6 +146,49 @@ c25 <- c(
   "darkturquoise", "green1", "yellow4", "yellow3",
   "darkorange4", "brown"
 )
+
+sliced <- read.csv("../data/sliced.csv")
+sliced <- sliced[!duplicated(sliced[,c("input", "magic")]), ]
+
+## set these for equally sized ntile bins
+divisble_limit <- nrow(sliced) - (nrow(sliced) %% 2048)
+division <- 64
+
+##for some reason I couldn't do the above math inside the index
+sliced <- sliced[1:divisble_limit, ]
+
+## these power some existing plots but will be phased out
+sliced$error_rank <- ntile(sliced$error, 4)
+sliced$input_rank <- ntile(sliced$input, division)
+sliced$magic_rank <- ntile(sliced$magic, division)
+
+diced <- magic_by_rank(sliced, 4)
+diced <- cbind(diced, magic_by_rank(sliced, 8))
+diced <- cbind(diced, magic_by_rank(sliced, 32))
+diced <- cbind(diced, magic_by_rank(sliced, 64))
+diced <- cbind(diced, magic_by_rank(sliced, 256))
+
+
+## retain some older methods to search for good constants
+best_magic <- find_best_magic_constants(sliced)
+best_magic <- create_median_dataset(sliced) %>%
+  left_join(best_magic, by = "input_rank")
+
+magic_difference <- create_diff_dataframe(diced)
+
+
+## diced is large and unwieldy for plotting
+rm(diced, divisble_limit, division)
+
+######### Plots go here
+
+ggplot(best_magic,
+       aes(x = input_rank,
+           y = best_magic)) +
+  geom_point()
+
+
+ggplot(merged_input, aes(x = median_input, y = median_error)) + geom_point()
 
 ggplot(sliced,
        aes(x = input_rank,
