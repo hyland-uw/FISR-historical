@@ -1,35 +1,37 @@
 library(tidyr)
 library(dplyr)
+library(forcats)
 
 ### functions at the top
 
 # returns a df with rank_N and best_N columns
-find_best_magic_constants <- function(df, ranks) {
+find_best_magic_constants <- function(rank, df = sliced, takeN = 4) {
   
   rank_column <- "location"
   best_column <- "best"
   
   df %>%
     arrange(df) %>%
-    mutate(!!rank_column := ntile(df, ranks)) %>%
+    mutate(!!rank_column := ntile(df, rank)) %>%
     group_by(!!sym(rank_column), magic) %>%
     summarize(total_error = sum(error), .groups = 'drop') %>%
     group_by(!!sym(rank_column)) %>%
-    slice_min(order_by = total_error, n = 4) %>%
+    ## select the best four and average those
+    slice_min(order_by = total_error, n = takeN) %>%
     summarize(!!best_column := floor(mean(magic))) %>%
     arrange(!!sym(rank_column))
 }
 
-create_median_dataset <- function(df) {
+find_avg_magic_constant <- function(rank, df = sliced) {
+  rank_column <- "location"
+  avg_column <- "average"
+
   df %>%
-    group_by(input_rank) %>%
-    summarize(
-      median_input = median(input),
-      median_error = median(error),
-      median_magic = floor(median(magic)),
-      .groups = 'drop'
-    ) %>%
-    arrange(input_rank)
+    arrange(df) %>%
+    mutate(!!rank_column := ntile(input, rank)) %>%
+    group_by(!!sym(rank_column)) %>%
+    summarize(!!avg_column := mean(magic), .groups = 'drop') %>%
+    arrange(!!sym(rank_column))
 }
 
 magic_by_rank <- function(df, ranks) {
@@ -46,7 +48,7 @@ magic_by_rank <- function(df, ranks) {
     summarize(!!magic_column := floor(mean(magic))) %>%
     ungroup()
   
-  sliced %>%
+  df %>%
     arrange(input) %>%
     mutate(!!input_column := ntile(input, ranks)) %>%
     left_join(best_magic_df, by = input_column) %>%
@@ -57,20 +59,31 @@ magic_by_rank <- function(df, ranks) {
 ## within an input rank list, what are the difference in the magic constant?
 ## An input rank N will have N different magic constants, this determines
 ## the difference of one element and the mean of all
-diff_within_rank <- function(df, N, length = 256) {
+diff_within_rank <- function(df, N, length = 256, measure = "mean") {
   # Convert input to numeric if it's not already
   N <- as.numeric(N)
-  # Call find_best_magic_constants() to get the best constants
-  ### for now this calls a dataframe which is not passed in as
-  ### an argument...
-  best_constants <- find_best_magic_constants(sliced, N)
-  # Calculate overall mean of best magic constants
-  overall_mean <- mean(best_constants$best)
-  total_locations <- nrow(best_constants)
+  
+  # Choose the appropriate function based on the measure argument
+  if (measure == "mean") {
+    constants_func <- find_avg_magic_constant
+    value_col <- "average"
+  } else if (measure == "best") {
+    constants_func <- find_best_magic_constants
+    value_col <- "best"
+  } else {
+    stop("Invalid measure. Choose 'mean' or 'best'.")
+  }
+  
+  # Call the appropriate function to get the constants
+  constants <- constants_func(N)
+  
+  # Calculate overall mean of constants
+  overall_mean <- mean(constants[[value_col]])
+  total_locations <- nrow(constants)
   
   # Calculate differences
-  diff_outside <- best_constants$best - 
-    (overall_mean * total_locations - best_constants$best) / (total_locations - 1)
+  diff_outside <- constants[[value_col]] - 
+    (overall_mean * total_locations - constants[[value_col]]) / (total_locations - 1)
   
   # Repeat the differences to match the original data length
   output <- rep(diff_outside, each = length / N)
@@ -81,22 +94,33 @@ diff_within_rank <- function(df, N, length = 256) {
 ## A higher rank will have more magic values
 ## this subtracts those from lower ranks, showing the
 ## difference across
-diff_across_ranks <- function(N1, N2, length = 256) {
+diff_across_ranks <- function(N1, N2, length = 256, measure = "mean") {
   # Convert inputs to numeric
   N1 <- as.numeric(N1)
   N2 <- as.numeric(N2)
   
-  # Get best magic constants for both N1 and N2
-  best_constants_N1 <- find_best_magic_constants(sliced, N1)
-  best_constants_N2 <- find_best_magic_constants(sliced, N2)
-  
-  # Ensure the number of rows in best_constants_N2 matches N2
-  if (nrow(best_constants_N2) != N2) {
-    stop("Number of rows in best_constants_N2 does not match N2")
+  # Choose the appropriate function based on the measure argument
+  if (measure == "mean") {
+    constants_func <- find_avg_magic_constant
+    value_col <- "average"
+  } else if (measure == "best") {
+    constants_func <- find_best_magic_constants
+    value_col <- "best"
+  } else {
+    stop("Invalid measure. Choose 'mean' or 'best'.")
   }
   
-  # Calculate differences between best magic constants
-  diff <- best_constants_N1$best - best_constants_N2$best
+  # Get magic constants for both N1 and N2
+  constants_N1 <- constants_func(N1)
+  constants_N2 <- constants_func(N2)
+  
+  # Ensure the number of rows in constants_N2 matches N2
+  if (nrow(constants_N2) != N2) {
+    stop("Number of rows in constants_N2 does not match N2")
+  }
+  
+  # Calculate differences between magic constants
+  diff <- constants_N1[[value_col]] - constants_N2[[value_col]]
   
   # Repeat the differences to match the original data length
   output <- rep(diff, each = length / N2)
@@ -104,13 +128,13 @@ diff_across_ranks <- function(N1, N2, length = 256) {
   return(output)
 }
 
-
-create_diff_dataframe <- function(diced) {
-  ranks <- c(4, 8, 32, 64, 256)
+create_diff_dataframe <- function(diced, measure = "mean") {
+  ranks <- c(4, 8, 16, 32, 64, 128, 256)
+  output_size <- max(ranks)
   
   # Calculate within-rank differences
   within_diffs <- lapply(ranks, function(r) {
-    diff_within_rank(diced, r)
+    diff_within_rank(diced, r, measure = measure)
   })
   names(within_diffs) <- paste0("within_", ranks)
   
@@ -119,14 +143,43 @@ create_diff_dataframe <- function(diced) {
   for (i in 1:(length(ranks)-1)) {
     for (j in (i+1):length(ranks)) {
       col_name <- paste0(ranks[i], "_", ranks[j])
-      across_diffs[[col_name]] <- diff_across_ranks(ranks[i], ranks[j])
+      across_diffs[[col_name]] <- diff_across_ranks(ranks[i], ranks[j], measure = measure)
     }
   }
   
   # Combine all differences into a single dataframe
   result <- bind_cols(c(within_diffs, across_diffs))
   
+  # Add rank columns
+  rank_columns <- lapply(ranks, function(r) {
+    rep(1:r, each = output_size/r)
+  })
+  names(rank_columns) <- paste0("rank_", ranks)
+  
+  result <- bind_cols(result, rank_columns)
+  
   return(result)
+}
+
+pivot_magic_diff <- function(df) {
+  df %>%
+    mutate(index = row_number()) %>%
+    pivot_longer(
+      cols = -c(index, starts_with("rank_")),
+      names_to = "comparison",
+      values_to = "Difference"
+    ) %>%
+    mutate(
+      Target = case_when(
+        str_starts(comparison, "within_") ~ "self",
+        TRUE ~ str_extract(comparison, "^\\d+")
+      ),
+      Pool = as.numeric(str_extract(comparison, "\\d+$")),
+      Comparison = if_else(str_starts(comparison, "within_"), "within", "across")
+    ) %>%
+    select(index, Target, Pool, Comparison, Difference) %>%
+    mutate(Type = paste(Target, Pool, sep = "_")) %>%
+    select(-Target, -Pool)
 }
 
 ## from https://stackoverflow.com/a/9568659/1188479
@@ -162,33 +215,30 @@ sliced$error_rank <- ntile(sliced$error, 4)
 sliced$input_rank <- ntile(sliced$input, division)
 sliced$magic_rank <- ntile(sliced$magic, division)
 
-diced <- magic_by_rank(sliced, 4)
-diced <- cbind(diced, magic_by_rank(sliced, 8))
-diced <- cbind(diced, magic_by_rank(sliced, 32))
-diced <- cbind(diced, magic_by_rank(sliced, 64))
-diced <- cbind(diced, magic_by_rank(sliced, 256))
+diced <- sliced %>%
+  mutate(
+    !!!magic_by_rank(., 4),
+    !!!magic_by_rank(., 8),
+    !!!magic_by_rank(., 16),
+    !!!magic_by_rank(., 32),
+    !!!magic_by_rank(., 64),
+    !!!magic_by_rank(., 128),
+    !!!magic_by_rank(., 256)
+  )
 
+magic_avg_difference <- create_diff_dataframe(diced, measure = "mean")
 
-## retain some older methods to search for good constants
-best_magic <- find_best_magic_constants(sliced)
-best_magic <- create_median_dataset(sliced) %>%
-  left_join(best_magic, by = "input_rank")
-
-magic_difference <- create_diff_dataframe(diced)
-
+magic_grid <- pivot_magic_diff(magic_avg_difference)
+magic_grid$Type <- factor(magic_grid$Type,
+                          ordered = TRUE,
+                          levels = unique(magic_grid$Type))
 
 ## diced is large and unwieldy for plotting
-rm(diced, divisble_limit, division)
+rm(divisble_limit, division,
+   magic_avg_difference, magic_best_difference,
+   diced)
 
 ######### Plots go here
-
-ggplot(best_magic,
-       aes(x = input_rank,
-           y = best_magic)) +
-  geom_point()
-
-
-ggplot(merged_input, aes(x = median_input, y = median_error)) + geom_point()
 
 ggplot(sliced,
        aes(x = input_rank,
@@ -269,9 +319,6 @@ ggplot(aggregate(error ~ input, sliced, range)) +
   labs(title = "Deciles of error for all constants by input float")
 
 
-
-
-
 error_col <- colorRampPalette(c("dodgerblue2", "red"))(length(unique(sliced$error_rank)))
 
 ggplot(sliced, aes(x = input_rank,
@@ -281,11 +328,39 @@ ggplot(sliced, aes(x = input_rank,
   scale_color_manual(values=setNames(error_col, 1:max(sliced$error_rank)))
 
 
+custom_labeller <- function(x) {
+  sapply(x, function(label) {
+    parts <- strsplit(label, "_")[[1]]
+    if(length(parts) == 2) {
+      paste(parts[2], "from", parts[1])
+    } else {
+      label  # Return original label if it doesn't match the expected format
+    }
+  })
+}
+magic_grid %>%
+  filter(Type %in% c("4_8", "4_16", "4_32", "4_64", "4_128", "4_256")) %>%
+  ggplot(aes(x = index, y = Difference, color = Type)) +
+  geom_line() +
+  facet_wrap(~ Type, ncol = 1, 
+             labeller = labeller(Type = custom_labeller)) +
+  theme_minimal() +
+  labs(x = "Float Range",
+       y = "Diff",
+       title = "Smaller Grid Sizes Approximate More Closely") +
+  scale_x_continuous(breaks = c(1, 64, 128, 192, 256)) + 
+  theme(legend.position = "none") + scale_y_continuous(labels = NULL)
 
-length <- 256
 
-df <- data.frame(input_4 = rep(1:4, each = length/4),
-                 magic_4 = rep(sample(1:20, 4), each = length/4),
-                 input_8 = rep(1:8, each = length/8),
-                 magic_8 = rep(sample(1:20, 8), each = length/8))
-
+magic_grid %>%
+  filter(Comparison == "within") %>%
+  ggplot(aes(x = index,
+             y = Difference,
+             color = Type,
+             linewidth = unclass(fct_rev(Type)))) +
+  geom_step() +
+  scale_linewidth(transform = "exp") +
+  scale_y_continuous(labels = NULL) + scale_x_continuous(labels = NULL) +
+  labs(title = "Smaller Grid Sizes mean more Absolute Difference") +
+  ylab(NULL) + xlab(NULL) +
+  guides(linewidth = "none", color = "none")
