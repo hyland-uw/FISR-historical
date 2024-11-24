@@ -62,7 +62,7 @@ float withoutDivISR(float x, int NR) {
 // post 2010
 float optimalFISR (float x, int NR) {
     union { float f; uint32_t u; } y = {x};
-    int magic = 0x5F1FFFF9ul;
+    int magic = 0x5F1FFFF9;
     y.u = magic - (y.u >> 1);
     while (NR > 0) {
         y.f = 0.703952253f * y.f * (2.38924456f - x * y.f * y.f);

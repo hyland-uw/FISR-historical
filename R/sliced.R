@@ -6,10 +6,10 @@ library(forcats)
 
 # returns a df with rank_N and best_N columns
 find_best_magic_constants <- function(rank, df = sliced, takeN = 4) {
-  
+
   rank_column <- "location"
   best_column <- "best"
-  
+
   df %>%
     arrange(df) %>%
     mutate(!!rank_column := ntile(df, rank)) %>%
@@ -22,6 +22,7 @@ find_best_magic_constants <- function(rank, df = sliced, takeN = 4) {
     arrange(!!sym(rank_column))
 }
 
+# returns a df with rank_N and best_N columns
 find_avg_magic_constant <- function(rank, df = sliced) {
   rank_column <- "location"
   avg_column <- "average"
@@ -37,7 +38,7 @@ find_avg_magic_constant <- function(rank, df = sliced) {
 magic_by_rank <- function(df, ranks) {
   input_column <- paste0("input_", ranks)
   magic_column <- paste0("magic_", ranks)
-  
+
   best_magic_df <- df %>%
     arrange(df) %>%
     mutate(!!input_column := ntile(df, ranks)) %>%
@@ -47,7 +48,7 @@ magic_by_rank <- function(df, ranks) {
     slice_min(order_by = total_error, n = 4) %>%
     summarize(!!magic_column := floor(mean(magic))) %>%
     ungroup()
-  
+
   df %>%
     arrange(input) %>%
     mutate(!!input_column := ntile(input, ranks)) %>%
@@ -62,7 +63,7 @@ magic_by_rank <- function(df, ranks) {
 diff_within_rank <- function(df, N, length = 256, measure = "mean") {
   # Convert input to numeric if it's not already
   N <- as.numeric(N)
-  
+
   # Choose the appropriate function based on the measure argument
   if (measure == "mean") {
     constants_func <- find_avg_magic_constant
@@ -73,21 +74,21 @@ diff_within_rank <- function(df, N, length = 256, measure = "mean") {
   } else {
     stop("Invalid measure. Choose 'mean' or 'best'.")
   }
-  
+
   # Call the appropriate function to get the constants
   constants <- constants_func(N)
-  
+
   # Calculate overall mean of constants
   overall_mean <- mean(constants[[value_col]])
   total_locations <- nrow(constants)
-  
+
   # Calculate differences
-  diff_outside <- constants[[value_col]] - 
+  diff_outside <- constants[[value_col]] -
     (overall_mean * total_locations - constants[[value_col]]) / (total_locations - 1)
-  
+
   # Repeat the differences to match the original data length
   output <- rep(diff_outside, each = length / N)
-  
+
   return(output)
 }
 
@@ -98,7 +99,7 @@ diff_across_ranks <- function(N1, N2, length = 256, measure = "mean") {
   # Convert inputs to numeric
   N1 <- as.numeric(N1)
   N2 <- as.numeric(N2)
-  
+
   # Choose the appropriate function based on the measure argument
   if (measure == "mean") {
     constants_func <- find_avg_magic_constant
@@ -109,35 +110,35 @@ diff_across_ranks <- function(N1, N2, length = 256, measure = "mean") {
   } else {
     stop("Invalid measure. Choose 'mean' or 'best'.")
   }
-  
+
   # Get magic constants for both N1 and N2
   constants_N1 <- constants_func(N1)
   constants_N2 <- constants_func(N2)
-  
+
   # Ensure the number of rows in constants_N2 matches N2
   if (nrow(constants_N2) != N2) {
     stop("Number of rows in constants_N2 does not match N2")
   }
-  
+
   # Calculate differences between magic constants
   diff <- constants_N1[[value_col]] - constants_N2[[value_col]]
-  
+
   # Repeat the differences to match the original data length
   output <- rep(diff, each = length / N2)
-  
+
   return(output)
 }
 
 create_diff_dataframe <- function(diced, measure = "mean") {
   ranks <- c(4, 8, 16, 32, 64, 128, 256)
   output_size <- max(ranks)
-  
+
   # Calculate within-rank differences
   within_diffs <- lapply(ranks, function(r) {
     diff_within_rank(diced, r, measure = measure)
   })
   names(within_diffs) <- paste0("within_", ranks)
-  
+
   # Calculate across-rank differences
   across_diffs <- list()
   for (i in 1:(length(ranks)-1)) {
@@ -146,23 +147,18 @@ create_diff_dataframe <- function(diced, measure = "mean") {
       across_diffs[[col_name]] <- diff_across_ranks(ranks[i], ranks[j], measure = measure)
     }
   }
-  
+
   # Combine all differences into a single dataframe
   result <- bind_cols(c(within_diffs, across_diffs))
-  
+
   # Add rank columns
   rank_columns <- lapply(ranks, function(r) {
     rep(1:r, each = output_size/r)
   })
   names(rank_columns) <- paste0("rank_", ranks)
-  
-  result <- bind_cols(result, rank_columns)
-  
-  return(result)
-}
 
-pivot_magic_diff <- function(df) {
-  df %>%
+  result <- bind_cols(result, rank_columns)
+  result  %>%
     mutate(index = row_number()) %>%
     pivot_longer(
       cols = -c(index, starts_with("rank_")),
@@ -200,15 +196,17 @@ c25 <- c(
   "darkorange4", "brown"
 )
 
-sliced <- read.csv("../data/sliced.csv")
-sliced <- sliced[!duplicated(sliced[,c("input", "magic")]), ]
+sliced <- read.csv("../data/sliced.csv") %>%
+  # Remove duplicates based on input and magic
+  distinct(input, magic, .keep_all = TRUE) %>%
+  # Order by input
+  arrange(input)
 
-## set these for equally sized ntile bins
-divisble_limit <- nrow(sliced) - (nrow(sliced) %% 2048)
-division <- 64
-
-##for some reason I couldn't do the above math inside the index
-sliced <- sliced[1:divisble_limit, ]
+division <- 256
+# Set these for equally sized ntile bins
+divisible_limit <- nrow(sliced) - (nrow(sliced) %% 2048)
+# Subset the dataframe to the divisible limit
+sliced <- sliced[1:divisible_limit, ]
 
 ## these power some existing plots but will be phased out
 sliced$error_rank <- ntile(sliced$error, 4)
@@ -226,12 +224,23 @@ diced <- sliced %>%
     !!!magic_by_rank(., 256)
   )
 
-magic_avg_difference <- create_diff_dataframe(diced, measure = "mean")
 
-magic_grid <- pivot_magic_diff(magic_avg_difference)
+magic_grid <- create_diff_dataframe(diced, measure = "mean")
 magic_grid$Type <- factor(magic_grid$Type,
                           ordered = TRUE,
                           levels = unique(magic_grid$Type))
+
+subtrahends <- c("magic_4", "magic_8", "magic_16", "magic_32")
+
+# Prepare the data
+diced_long <- diced %>%
+  pivot_longer(cols = all_of(subtrahends), names_to = "subtrahend", values_to = "subtrahend_value") %>%
+  mutate(
+    difference = magic - subtrahend_value,
+    # Convert subtrahend to an ordered factor
+    subtrahend = factor(subtrahend, levels = subtrahends, ordered = TRUE)
+  )
+
 
 ## diced is large and unwieldy for plotting
 rm(divisble_limit, division,
@@ -268,18 +277,8 @@ ggplot(sliced, aes(x = magic, y = error)) + geom_point(shape= ".") + theme_void(
 ggplot(data = sliced, aes(x = magic,
                           y = error,
                           color = cut(input, breaks = 64))) +
-  geom_point(shape = ".", alpha = 0.5) + 
+  geom_point(shape = ".", alpha = 0.5) +
   scale_color_manual(values = sample(rep(c25, 250))) +
-  guides(color = "none")
-
-# ## facet wrap is unweildy for large numbers of floats
-ggplot(sliced,
-       aes(x = magic,
-           y = error,
-           color = factor(error_rank))) +
-  geom_point(shape= ".") +
-  facet_wrap(~ input_rank) +
-  theme_void() +
   guides(color = "none")
 
 ## quartile error plots by float sampled
@@ -315,17 +314,36 @@ ggplot(aggregate(error ~ input, sliced, range)) +
   geom_line(aes(x = input,
                 y = aggregate(error ~ input, sliced, quantile, probs = 0.9)[,2]),
             col = easy_blues[9]) +
-  ylab("Relative error") + xlab("Input") + 
+  ylab("Relative error") + xlab("Input") +
   labs(title = "Deciles of error for all constants by input float")
 
+### useful plots of differences in constantys by error
+error_col <- colorRampPalette(c("dodgerblue2", "red"))(length(unique(diced$error_rank)))
+ggplot(diced,
+       aes(x = input_rank,
+           y = magic - magic_4,
+           group = input_8, fill = factor(error_rank))) +
+  geom_col(position = "dodge") +
+  scale_fill_manual(values=setNames(error_col, 1:max(diced$error_rank)))
 
-error_col <- colorRampPalette(c("dodgerblue2", "red"))(length(unique(sliced$error_rank)))
+### good faceted plot of the differences in magic constants
+ggplot(diced_long,
+       aes(x = input_rank,
+           y = difference,
+           group = input_8,
+           fill = factor(error_rank))) +
+  geom_col(position = "dodge") +
+  scale_fill_manual(values = setNames(error_col, 1:max(diced$error_rank))) +
+  facet_wrap(~ subtrahend, ncol = 1) +
+  labs(title = "Magic Differences Across Ranks",
+       x = "Input Rank",
+       y = "Difference",
+       fill = "Error Rank") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
 
-ggplot(sliced, aes(x = input_rank,
-                   y = error,
-                   color = factor(error_rank))) +
-  geom_col() + guides(color = "none") +
-  scale_color_manual(values=setNames(error_col, 1:max(sliced$error_rank)))
+### fun use of subtrahend
+ggplot(diced_long, aes(x = input_rank, y = difference, color = factor(subtrahend))) + geom_point(shape = ".") + guides(color = "none") + theme_void()
 
 
 custom_labeller <- function(x) {
@@ -338,17 +356,18 @@ custom_labeller <- function(x) {
     }
   })
 }
+
 magic_grid %>%
   filter(Type %in% c("4_8", "4_16", "4_32", "4_64", "4_128", "4_256")) %>%
   ggplot(aes(x = index, y = Difference, color = Type)) +
   geom_line() +
-  facet_wrap(~ Type, ncol = 1, 
+  facet_wrap(~ Type, ncol = 1,
              labeller = labeller(Type = custom_labeller)) +
   theme_minimal() +
   labs(x = "Float Range",
        y = "Diff",
        title = "Smaller Grid Sizes Approximate More Closely") +
-  scale_x_continuous(breaks = c(1, 64, 128, 192, 256)) + 
+  scale_x_continuous(breaks = c(1, 64, 128, 192, 256)) +
   theme(legend.position = "none") + scale_y_continuous(labels = NULL)
 
 
@@ -359,8 +378,19 @@ magic_grid %>%
              color = Type,
              linewidth = unclass(fct_rev(Type)))) +
   geom_step() +
-  scale_linewidth(transform = "exp") +
+  scale_linewidth(transform = "exp", breaks = 28:22, name = "Bins", labels = c("4", "8", "16", "32", "64", "128", "256") ) +
   scale_y_continuous(labels = NULL) + scale_x_continuous(labels = NULL) +
-  labs(title = "Smaller Grid Sizes mean more Absolute Difference") +
-  ylab(NULL) + xlab(NULL) +
-  guides(linewidth = "none", color = "none")
+  labs(title = "Smaller grid sizes mean larger absolute differences") +
+  ylab(NULL) + xlab(NULL) + scale_color_discrete(breaks = 22:28)
+
+magic_grid %>%
+  filter(str_detect(Type, "^4_")) %>%
+  ggplot(aes(x = index, y = Difference, color = Type)) +
+  geom_line(aes(linewidth = unclass(fct_rev(Type)))) +
+  scale_linewidth(transform = "exp",
+                  breaks = 21:16,
+                  name = "Bins",
+                  labels = c("8", "16", "32", "64", "128", "256")) +
+  guides(color = "none") +
+  scale_y_continuous(labels = NULL, name = "") +
+  scale_x_continuous(labels = NULL, name = "")

@@ -1,11 +1,25 @@
+library(dplyr)
 
 enumerated <- read.csv("../data/enumerated.csv")
-enumerated <- enumerated[!duplicated(enumerated[,c("input", "magic")]), ]
+enumerated <- enumerated %>%
+  distinct(input, magic, .keep_all = TRUE) %>%
+  arrange(input)
 
+# Set these for equally sized ntile bins
+divisible_limit <- nrow(enumerated) - (nrow(enumerated) %% 2048)
+# Subset the dataframe to the divisible limit
+enumerated <- enumerated[1:divisible_limit, ]
+rm(divisible_limit)
 
-ggplot(enumerated,
-       aes(x = magic, y = (initial - reference) / reference )) +
-  geom_point(shape = ".")
+## rank input and magic
+## these can make plotting easier. 
+## note that these ranks rank DIFFERENT things
+## than the similar ones in sliced,
+## which records good and bad constants
+enumerated$input_rank <- ntile(enumerated$input, 256)
+enumerated$magic_rank <- ntile(enumerated$magic, 256)
+enumerated$error_rank <- with(enumerated, ntile(initial - final, 8))
+
 
 ggplot(enumerated,
        aes(x = magic,
@@ -16,3 +30,15 @@ ggplot(enumerated,
   ylab("Relative Error") + 
   labs(title = "Distribution of error across generated constants")
 ggsave("../plots/enumerated_error.png")
+
+## one possibly takeaway
+ggplot(enumerated,
+       aes(x = log(input) ,
+           y = initial - final,
+           color = factor(magic_rank))) +
+  geom_point(shape = ".") +
+  ylab("Error") +
+  labs(title = "Smaller inputs lead to higher overall error, regardless of constant choice") +
+  scale_color_discrete(name = "Magic constant\nvalue",
+                       breaks = 1:4,
+                       labels = c("Lowest", "Low", "High", "Highest"))
