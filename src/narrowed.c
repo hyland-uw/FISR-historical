@@ -1,15 +1,8 @@
 #include "util-harness.h"
 
-
-// For deconstruction
-// experiments show that if it does not converge after
-// 94 it probably will not converge (tested up to 2000)
-#define NRMAX 95
-#define FLOAT_TOL 0.00012f
-#define INT_DRAWS 262144
-#define INT_DRAW_MIN 1592500000
-#define INT_DRAW_MAX 1602000000
-
+// 0x5f37642f +/- 4000
+#define INT_LO 1597461647
+#define INT_HI 1597469647
 /*
 This harness allows us to deconstruct the working and output of an idealized FISR.
 
@@ -23,8 +16,8 @@ Unions are used to avoid type punning, so this code should work at all
 levels of compiler optimization.
 */
 
-deconHarness decon_rsqrt(float x, int NRmax, uint32_t magic, float tol) {
-    deconHarness result;
+narrowHarness narrow_decon_rsqrt(float x, uint32_t magic, float tol) {
+    narrowHarness result;
 
     // Compute a reference inverse square root
     // Used to compute error
@@ -60,22 +53,16 @@ deconHarness decon_rsqrt(float x, int NRmax, uint32_t magic, float tol) {
     // floating point representation. Treating the value
     // has the effect of removing us from the logarithmic domain
     result.initial_approx = y.f;
-    // For guesses which take 0 iterations to converge, set
-    // as NA
-    result.after_one = NAN;
 
     // All of the FISRs we see in this library use at least
     // one iteration of Newton-Raphson.
     // Because different approximations choose differing
     // values for halfthree and halfone, we can select them
     int iters = 0;
-    while (iters < NRmax) {
+    while (iters < 2) {
         // Hardcode 1.5 and 0.5 for this version
         y.f = y.f * (1.5f - 0.5f * x * y.f * y.f);
         iters++;
-        if (iters == 1) {
-            result.after_one = y.f;
-        }
         // terminate NR iteration when we are close
         // rather than after 1 or 2 to better show
         // the possibility space
@@ -83,20 +70,14 @@ deconHarness decon_rsqrt(float x, int NRmax, uint32_t magic, float tol) {
             break;
         }
     }
-    // Record iters after the while loop, then check
+    // Record output after the while loop, then check
     // validity
+    result.output = y.f;
     result.NR_iters = iters;
 
     if (!isnormal(result.initial_approx)) {
         result.invalid_float_reached = true;
     }
-
-    // We set the max elsewhere. If we reach it,
-    // it is likely the output will not converge
-    if (result.NR_iters == NRmax) {
-        result.invalid_float_reached = true;
-    }
-
     // A poor choice of restoring constant can make the
     // resulting float invalid. isnormal() is chosen to
     // exclude subnormal numbers, which won't work with
@@ -106,7 +87,7 @@ deconHarness decon_rsqrt(float x, int NRmax, uint32_t magic, float tol) {
     // We may also reach an invalid float through
     // overflow with (very) poor choices of
     // three or half
-    if (!isnormal(result.after_one) || !isnormal(result.initial_approx)) {
+    if (!isnormal(result.output) || !isnormal(result.initial_approx)) {
         result.invalid_float_reached = true;
     }
 
@@ -117,41 +98,41 @@ typedef struct {
     float input;
     float reference;
     float initial_approx;
-    float after_one;
+    float output;
     unsigned int NR_iters;
     uint32_t partial_fraction;
     uint32_t magic;
 } SampleResult;
 
-void sample_decon_rsqrt(int draws, int NRmax, float min, float max, float tol) {
-    SampleResult* results = malloc(sizeof(SampleResult) * draws);
-    int valid_results = 0;
-    float inputrange[draws];
-    for (int i = 0; i < draws; i++) {
-         inputrange[i] = logStratifiedSampler(min, max);
+void total_decon_rsqrt(uint32_t int_min, uint32_t int_max, float min, float max, float tol) {
+    uint32_t int_width = int_max - int_min;
+    SampleResult* results = malloc(sizeof(SampleResult) * int_width);
+    uint32_t valid_results = 0;
+    float* inputrange = malloc(sizeof(float) * int_width);
+
+    for (uint32_t i = 0; i < int_width; i++) {
+        inputrange[i] = logStratifiedSampler(min, max);
     }
 
     #pragma omp parallel
     {
-        // Thread-local storage for results
-        SampleResult* local_results = malloc(sizeof(SampleResult) * draws / omp_get_num_threads());
-        int local_valid_results = 0;
+        // Allocate local results with sufficient size
+        SampleResult* local_results = malloc(sizeof(SampleResult) * int_width);
+        uint32_t local_valid_results = 0;
 
         #pragma omp for
-        for (int i = 0; i < draws; i++) {
-            float x = inputrange[i];
-            // Wider integer sample range than the others. we are looking for
-            // poor fits
-            uint32_t magic = sample_integer_range(INT_DRAW_MIN, INT_DRAW_MAX);
+        for (uint32_t i = int_min; i < int_max; i++) {
+            float x = inputrange[i - int_min];  // Adjust index to match inputrange
+            uint32_t magic = i;
 
-            deconHarness result = decon_rsqrt(x, NRmax, magic, tol);
+            narrowHarness result = narrow_decon_rsqrt(x, magic, tol);
 
             if (!result.invalid_float_reached) {
                 SampleResult sample = {
                     .input = x,
                     .reference = result.reference,
                     .initial_approx = result.initial_approx,
-                    .after_one = result.after_one,
+                    .output = result.output,
                     .NR_iters = result.NR_iters,
                     .partial_fraction = extract_top10_fraction(x),
                     .magic = magic
@@ -163,7 +144,7 @@ void sample_decon_rsqrt(int draws, int NRmax, float min, float max, float tol) {
         // Merge local results into global results
         #pragma omp critical
         {
-            for (int i = 0; i < local_valid_results && valid_results < draws; i++) {
+            for (uint32_t i = 0; i < local_valid_results && valid_results < int_width; i++) {
                 results[valid_results++] = local_results[i];
             }
         }
@@ -172,18 +153,19 @@ void sample_decon_rsqrt(int draws, int NRmax, float min, float max, float tol) {
     }
 
     // Print results
-    printf("input,reference,initial,after_one,iters,partial_fraction,magic\n");
-    for (int i = 0; i < valid_results; i++) {
+    printf("input,reference,initial,final,iters,partial_fraction,magic\n");
+    for (uint32_t i = 0; i < valid_results; i++) {
         printf("%f,%f,%f,%f,%u,%d,0x%08X\n",
                results[i].input,
                results[i].reference,
                results[i].initial_approx,
-               results[i].after_one,
+               results[i].output,
                results[i].NR_iters,
                results[i].partial_fraction,
                results[i].magic);
     }
 
+    free(inputrange);
     free(results);
 }
 
@@ -191,6 +173,6 @@ void sample_decon_rsqrt(int draws, int NRmax, float min, float max, float tol) {
 // outputs via printf for a csv
 int main() {
     srand(time(NULL));
-    sample_decon_rsqrt(INT_DRAWS, NRMAX, FLOAT_START, FLOAT_END, FLOAT_TOL);
+    total_decon_rsqrt(INT_LO, INT_HI, FLOAT_START, FLOAT_END, 0.00024f);
     return 0;
 }

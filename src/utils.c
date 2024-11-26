@@ -1,6 +1,10 @@
-#include <math.h>
-#include <stdint.h>
-#include <stdlib.h>
+#include "util-harness.h"
+
+// Absolute difference of unisgned integers
+// See https://stackoverflow.com/q/77337671
+uint32_t abs_uint_diff(uint32_t a, uint32_t b) {
+    return (a > b) ? (a - b) : (b - a);
+}
 
 // Smooth generation of random floats in a range
 // by dividing doubles then casting
@@ -82,4 +86,79 @@ float minimal_rsqrt(float input, uint32_t magic, int NR) {
         NR--;
     }
     return y.f;
+}
+
+// Extract exponent bits
+uint32_t exp_extract(float input) {
+    uint32_t exponent;
+    // Use a union to access the bits of the float
+    union {
+        float f;
+        uint32_t i;
+    } u;
+    u.f = input;
+
+    // Extract the exponent (biased)
+    exponent = ((u.i >> 23) & 0xFF) - 127;
+
+    return exponent;
+}
+
+uint32_t extract_top10_fraction(float input) {
+    union {
+        float f;
+        uint32_t i;
+    } u;
+    u.f = input;
+
+    // Extract the top half of the fraction bits
+    uint32_t top10_fraction = (u.i >> 13) & 0x3FF;
+
+    return top10_fraction;
+}
+
+
+// Given a specific exponent, sample within the fraction range
+float random_float_with_exponent(uint32_t exponent) {
+    union {
+        float f;
+        uint32_t i;
+    } u;
+
+    // Generate a random mantissa
+    uint32_t mantissa = (uint32_t)rand() & 0x7FFFFF;
+
+    // Construct the float
+    u.i = (exponent << 23) | mantissa;
+
+    return u.f;
+}
+
+float min_max_float_with_exponent(int exponent, bool is_max) {
+    exponent = exponent - 127;
+    if (exponent < -126 || exponent > 127) {
+        // Handle out-of-range exponents
+        return 0.0f;  // or NaN, depending on your preference
+    }
+
+    union {
+        float f;
+        uint32_t i;
+    } u;
+
+    if (exponent == -126 && !is_max) {
+        // Special case: smallest normalized number
+        u.i = 0x00800000;
+    } else {
+        // Construct the float:
+        // Sign bit: 0 (positive)
+        // Exponent: biased exponent (add 127)
+        // Fraction: all zeros for min, all ones for max
+        u.i = (uint32_t)(exponent + 127) << 23;
+        if (is_max) {
+            u.i |= 0x007FFFFF;  // Set all fraction bits to 1 for max
+        }
+    }
+
+    return u.f;
 }

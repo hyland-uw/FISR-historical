@@ -1,5 +1,4 @@
 #include "util-harness.h"
-#include <stdint.h>
 
 struct Result {
     float error;

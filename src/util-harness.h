@@ -27,18 +27,11 @@
 #define MAGIC_CONSTANT_DRAWS 32768 // number of integer constant samples per float
 
 // For visualizing
-#define FLOAT_SLICES 8192 // number foroptimized/approximated
+#define FLOAT_SLICES 8192 // number for optimized/approximated/extracted
 #define FLOAT_VIS_SLICES 2048 // Smaller slices for sliced.c to keep file size down
 #define INTEGER_SAMPLES_PER_SLICE 2048 // number of integers to sample for single float search
 #define INTEGER_SELECTIONS 256 // winnow best performers
 #define CHUNK_SIZE 1000
-
-// For deconstruction
-// experiments show that if it does not converge after
-// 94 it probably will not converge (tested up to 2000)
-#define NRMAX 95
-#define FLOAT_TOL 0.00012f
-#define PAIR_DRAWS 131072
 
 // for sampling halfone/halfthree
 //
@@ -46,22 +39,35 @@
 #define GRID_STEP 0.001f
 
 // Utility function prototpes which we want to define elsewhere
-
+// These should (should!) all be un utils.c
 float uniformRange (float min, float max);
 float reciprocalRange(float min, float max);
 float logStratifiedSampler(float min, float max);
 uint32_t sample_integer_range(uint32_t min, uint32_t max);
 float minimal_rsqrt(float input, uint32_t magic, int NR);
+float random_float_with_exponent(uint32_t exponent);
+uint32_t exp_extract(float input);
+uint32_t abs_uint_diff(uint32_t a, uint32_t b);
+float min_max_float_with_exponent(int exponent, bool is_max);
+uint32_t extract_top10_fraction(float input);
 
 // Harness to capture information for visualization
 // Placing the definition here seems to allow me to return an object struct
 // though I am not sure why
 typedef struct deconHarness {
-    float input, reference, output, initial_approx;
+    float input, reference, after_one, initial_approx;
     int NR_iters;
     bool invalid_float_reached;
 } deconHarness;
 deconHarness decon_rsqrt(float x, int NRmax, uint32_t magic, float tol);
+
+
+typedef struct narrowHarness {
+    float input, reference, output, initial_approx;
+    int NR_iters;
+    bool invalid_float_reached;
+} narrowHarness;
+narrowHarness narrow_decon_rsqrt(float x, uint32_t magic, float tol);
 
 // Sampling function prototype for draws of decon_rsqrt()
 void sample_decon_rsqrt(int draws, int NRmax, float min, float max, float tol);
