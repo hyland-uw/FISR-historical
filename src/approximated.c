@@ -1,5 +1,10 @@
 #include "util-harness.h"
 
+// 2^-8 seems generous
+#define FLOAT_TOL 0.00390625
+#define MAX_NR 95
+
+
 //// Implementations of various inverse square roots.
 //// all should accept:
 ////     an input float x, assumed to be positive and normal
@@ -77,21 +82,54 @@ float optimalFISR (float x, int NR) {
 // https://doi.org/10.48550/arXiv.1802.06302
 // See page 15 for InvSqrt2 constants
 float MorozISR(float x, int NR) {
-    float halfx = x * 0.5f;
     int magic = 0x5F376908;
     union { float f; uint32_t u; } y = {x};
     y.u = magic - (y.u >> 1);
     while (NR > 0) {
-        y.f = y.f * (1.5008789f - halfx * y.f * y.f);
+        y.f = y.f * (1.5008789f - 0.5f * x * y.f * y.f);
         NR--;
     }
     return y.f;
 }
 
-/*
-LaLonde and Dawson's 1990 method was previously checked into this repository,
-it is now at https://gist.github.com/Protonk/dfbcab17986777ff997f24dcdd8e3bbc
-*/
+// Naive guesses are used to help show the virtue of a good guess
+// We can track number of iterations for convergence, which
+// for naive guesses is meaningful, where most of the
+// optimized guesses will converge to tight tolerances after 1 or 2
+// iterations.
+float NaiveISR_1_over_x(float x, int NR) {
+    union { float f; uint32_t u; } y = {x};
+    y.f = 1.0f / x;
+    while (NR > 0) {
+        y.f = y.f * (1.5f - 0.5f * x * y.f * y.f);
+        NR--;
+    }
+    return y.f;
+}
+
+// x is a particularly bad guess!
+float NaiveISR_x(float x, int NR) {
+    union { float f; uint32_t u; } y = {x};
+    y.f = x;
+    while (NR > 0) {
+        y.f = y.f * (1.5f - 0.5f * x * y.f * y.f);
+        NR--;
+    }
+    return y.f;
+}
+
+// Using the system square root is numerically a very good guess
+// In terms of use of computing resources it is
+// ironically profligate for NR > 0 ;)
+float SqrtISR(float x, int NR) {
+    union { float f; uint32_t u; } y = {x};
+    y.f = 1.0f / sqrtf(x);
+    while (NR > 0) {
+        y.f = y.f * (1.5f - 0.5f * x * y.f * y.f);
+        NR--;
+    }
+    return y.f;
+}
 
 // This construction allows easy dispatch for each of the FISR methods
 // we are testing.
@@ -102,6 +140,9 @@ ISREntry isr_table[] = {
     {"withoutDiv", withoutDivISR},
     {"optimal_grid", optimalFISR},
     {"Moroz", MorozISR},
+    {"Naive_1_over_x", NaiveISR_1_over_x},
+    {"Naive_x", NaiveISR_x},
+    {"Sqrt", SqrtISR},
     {NULL, NULL} // Sentinel to mark the end of the array
 };
 
@@ -111,31 +152,44 @@ float FISR(const char *name, float x, int NR) {
             return isr_table[i].func(x, NR);
         }
     }
-    // Function not found
     fprintf(stderr, "Error: ISR function '%s' not found\n", name);
     return NAN;
 }
 
-int main() {
+void compare_isr_methods(float input) {
+    float reference = 1.0f / sqrtf(input);
 
+    for (int i = 0; isr_table[i].name != NULL; i++) {
+        float initial_guess = FISR(isr_table[i].name, input, 0);
+        float one_iteration = FISR(isr_table[i].name, input, 1);
+
+        int iterations = 0;
+        float result = initial_guess;
+        int produced_nan = 0;
+
+        while (iterations < MAX_NR) {
+            result = FISR(isr_table[i].name, input, iterations);
+            if (fabsf(result - reference) <= FLOAT_TOL || isnan(result)) {
+                break;
+            }
+            iterations++;
+        }
+
+        produced_nan = isnan(result) ? 1 : 0;
+
+        printf("%e, %s, %e, %e, %d, %d\n",
+               input, isr_table[i].name, initial_guess, one_iteration, iterations, produced_nan);
+    }
+}
+
+int main() {
     srand(time(NULL));
-    // Prints in tidy format, e.g.:
-    //
-    // ISR_function, input, reference, NR_0, NR_1
-    // BlinnISR, 1.25, 0.8944272, 0.9, 0.895
-    printf("ISR_function, input, reference, initial, final\n");
+
+    printf("input, method, initial_guess, one_iteration, iterations_to_converge, produced_nan\n");
 
     for (int draw = 0; draw < FLOAT_SLICES; draw++) {
         float input = logStratifiedSampler(FLOAT_START, FLOAT_END);
-        float reference = 1.0f / sqrtf(input);
-
-        for (int i = 0; isr_table[i].name != NULL; i++) {
-            float result_nr0 = FISR(isr_table[i].name, input, 0);
-            float result_nr1 = FISR(isr_table[i].name, input, 1);
-
-            printf("%s, %e, %e, %e, %e\n",
-                   isr_table[i].name, input, reference, result_nr0, result_nr1);
-        }
+        compare_isr_methods(input);
     }
 
     return 0;

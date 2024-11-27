@@ -78,17 +78,19 @@ float QuakeISR(float x, int NR);
 float withoutDivISR(float x, int NR);
 float optimalFISR(float x, int NR);
 float MorozISR(float x, int NR);
+float NaiveISR_x(float x, int NR);
+float SqrtISRfloat(float x, int NR);
+float NaiveISR_1_over_x(float x, int NR);
 
 // Declare a function and struct to access the various historical methods
 typedef float (*ISRFunction)(float, int);
 
 typedef struct {
     const char *name;
-    ISRFunction func;
+    float (*func)(float, int);
 } ISREntry;
 
 // Declare the table as extern
 extern ISREntry isr_table[];
-
 
 #endif // FISR_HARNESS_H
