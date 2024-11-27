@@ -165,7 +165,6 @@ void compare_isr_methods(float input) {
 
         int iterations = 0;
         float result = initial_guess;
-        int produced_nan = 0;
 
         while (iterations < MAX_NR) {
             result = FISR(isr_table[i].name, input, iterations);
@@ -175,17 +174,15 @@ void compare_isr_methods(float input) {
             iterations++;
         }
 
-        produced_nan = isnan(result) ? 1 : 0;
-
-        printf("%e, %s, %e, %e, %d, %d\n",
-               input, isr_table[i].name, initial_guess, one_iteration, iterations, produced_nan);
+        printf("%e,%s,%e,%e,%e,%d\n",
+               input, isr_table[i].name, initial_guess, one_iteration, result, iterations);
     }
 }
 
 int main() {
     srand(time(NULL));
 
-    printf("input, method, initial_guess, one_iteration, iterations_to_converge, produced_nan\n");
+    printf("input, method, initial_guess, one_iteration, final, iterations_to_converge\n");
 
     for (int draw = 0; draw < FLOAT_SLICES; draw++) {
         float input = logStratifiedSampler(FLOAT_START, FLOAT_END);

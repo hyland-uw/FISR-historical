@@ -1,5 +1,5 @@
 approximated <- read.csv("../data/approximated.csv")
-
+approximated$reference <- with(approximated, 1/sqrt(input))
 
 ### plot the "big three"
 big_three <- c("Blinn", "QuakeIII", "Moroz")
@@ -17,10 +17,10 @@ custom_colors <- c(
   "Moroz" = "red"
 )
 
-bt_plot <- ggplot(approximated[approximated[, "ISR_function"] %in% big_three,],
+bt_plot <- ggplot(approximated[approximated[, "method"] %in% big_three,],
        aes(x = input,
-           y = (final - reference) / reference,
-           color = ISR_function)) +
+           y = (one_iteration - reference) / reference,
+           color = method)) +
   geom_line() + 
   ylab("Relative Error") + 
   xlab("Input") +
