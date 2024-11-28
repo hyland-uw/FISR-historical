@@ -27,7 +27,7 @@
 #define MAGIC_CONSTANT_DRAWS 32768 // number of integer constant samples per float
 
 // For visualizing
-#define FLOAT_SLICES 8192 // number for optimized/approximated/extracted
+#define FLOAT_SLICES 12288 // number for optimized/approximated/extracted
 #define FLOAT_VIS_SLICES 2048 // Smaller slices for sliced.c to keep file size down
 #define INTEGER_SAMPLES_PER_SLICE 2048 // number of integers to sample for single float search
 #define INTEGER_SELECTIONS 256 // winnow best performers
@@ -78,9 +78,6 @@ float QuakeISR(float x, int NR);
 float withoutDivISR(float x, int NR);
 float optimalFISR(float x, int NR);
 float MorozISR(float x, int NR);
-float NaiveISR_x(float x, int NR);
-float SqrtISRfloat(float x, int NR);
-float NaiveISR_1_over_x(float x, int NR);
 
 // Declare a function and struct to access the various historical methods
 typedef float (*ISRFunction)(float, int);

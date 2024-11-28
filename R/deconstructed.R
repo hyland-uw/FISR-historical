@@ -14,7 +14,7 @@ rm(divisible_limit)
 
 ## iterations over 6 have a markedly different structure 
 ## than 1-6. Why they converge might be different
-
+## dropping these from the plot is a temporary measure
 deconstructed <- deconstructed %>%
   filter(iters <= 6) %>%
   mutate(iters = factor(iters, levels = 1:max(iters), labels = 1:max(iters)))
@@ -73,6 +73,7 @@ create_geom_points <- function(data, iter_range, shape, size, alpha = 1) {
 ## from https://stackoverflow.com/a/23574127/1188479
 iter_colors <- colorRampPalette(c("dodgerblue2", "red"))(as.numeric(max(levels(deconstructed$iters))))
 
+iter_rank_hue <- c("lightblue", colorRampPalette(c("white", "orange1", "red"))(7))
 
 ## from https://stackoverflow.com/a/9568659/1188479
 ## useful for false categorical coloring
@@ -129,10 +130,9 @@ deconstructed %>%
 ggplot(deconstructed,
        aes(x = (initial - reference) / reference,
            y = (after_one - reference) / reference,
-           color = iters)) +
+           color = iter_rank)) +
   geom_point(shape = 16, size = 0.8, alpha = 0.9) +
-  scale_color_manual(values = deconstructed$iters,
-                     labels = levels(deconstructed$iters),
+  scale_color_manual(values = iter_rank_hue,
                      guide = guide_legend(override.aes = list(size = 1.5))) +
   labs(title = "NR converges quadratically",
        x = "Relative error before Newton-Raphson",
@@ -162,8 +162,6 @@ ggplot(deconstructed,
 
 
 # plot to be subset
-
-iter_rank_hue <- c("lightblue", colorRampPalette(c("white", "orange1", "red"))(7))
 
 subset_plot <- deconstructed %>% 
   filter(iters %in% levels(iters)[1:5]) %>%

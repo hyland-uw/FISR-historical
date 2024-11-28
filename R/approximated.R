@@ -1,5 +1,11 @@
 approximated <- read.csv("../data/approximated.csv")
+
+## reference is generated here and not in C
 approximated$reference <- with(approximated, 1/sqrt(input))
+
+### 95 seems to catch most that will likely never converge
+approximated$failure <- FALSE
+approximated[approximated[, "iters"] == 95, "failure"] <- TRUE
 
 ### plot the "big three"
 big_three <- c("Blinn", "QuakeIII", "Moroz")
@@ -17,9 +23,9 @@ custom_colors <- c(
   "Moroz" = "red"
 )
 
-bt_plot <- ggplot(approximated[approximated[, "method"] %in% big_three,],
+ggplot(approximated[approximated[, "method"] %in% big_three,],
        aes(x = input,
-           y = (one_iteration - reference) / reference,
+           y = (after_one - reference) / reference,
            color = method)) +
   geom_line() + 
   ylab("Relative Error") + 
@@ -35,8 +41,28 @@ bt_plot <- ggplot(approximated[approximated[, "method"] %in% big_three,],
     legend.key.size = unit(1.5, 'cm'),    # Increase the size of the color box
     legend.text = element_text(margin = margin(l = 10, unit = "pt"))
   )
-print(bt_plot)
 
-## save to plots
+ggplot(approximated[approximated[, "method"] %in% c("QuakeIII", "Moroz"),],
+       aes(x = input,
+           y = (guess - reference) / reference,
+           color = method)) +
+  geom_line() + 
+  ylab("Relative Error") + 
+  xlab("Input") +
+  labs(color = "Algorithm",
+       title = "Performance of three Fast Inverse Square Root Algorithms") +
+  theme(
+    legend.key.size = unit(1.5, 'cm'),    # Increase the size of the color box
+    legend.text = element_text(margin = margin(l = 10, unit = "pt"))
+  )
 
-ggsave(filename = "../plots/big_three_compared.png", bt_plot)
+approximated %>%
+  filter(method %in% c("Naive_1_over_x", "Naive_x", "Blinn")) %>%
+  ggplot(aes(x = iters, fill = method)) +
+  geom_bar()
+
+approximated %>%
+  filter(iters %in% c(0,1,95)) %>%
+  ggplot(aes(x = iters, fill = method)) + geom_bar(position = "dodge")
+
+
