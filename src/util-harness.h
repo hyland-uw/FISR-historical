@@ -76,11 +76,8 @@ void sample_decon_rsqrt(int draws, int NRmax, float min, float max, float tol);
 float BlinnISR(float x, int NR);
 float QuakeISR(float x, int NR);
 float withoutDivISR(float x, int NR);
-float optimalFISR(float x, int NR);
 float MorozISR(float x, int NR);
-
-// Declare a function and struct to access the various historical methods
-typedef float (*ISRFunction)(float, int);
+float gridISR(float x, int NR);
 
 typedef struct {
     const char *name;
