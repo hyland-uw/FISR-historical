@@ -4,8 +4,7 @@
 // For deconstruction
 // experiments show that if it does not converge after
 // 94 it probably will not converge (tested up to 2000)
-#define NRMAX 95
-#define FLOAT_TOL 0.00012f
+#define MAX_NR 95
 #define INT_DRAWS 262144
 #define INT_DRAW_MIN 1592500000
 #define INT_DRAW_MAX 1602000000
@@ -191,6 +190,6 @@ void sample_decon_rsqrt(int draws, int NRmax, float min, float max, float tol) {
 // outputs via printf for a csv
 int main() {
     srand(time(NULL));
-    sample_decon_rsqrt(INT_DRAWS, NRMAX, FLOAT_START, FLOAT_END, FLOAT_TOL);
+    sample_decon_rsqrt(INT_DRAWS, MAX_NR, FLOAT_START, FLOAT_END, FLOAT_TOL);
     return 0;
 }

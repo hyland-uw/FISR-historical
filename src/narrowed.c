@@ -3,6 +3,13 @@
 // 0x5f37642f +/- 4000
 #define INT_LO 1597461647
 #define INT_HI 1597469647
+
+// This is a temporary solution to generate a plot comparing very close
+// FISR approximation magic constants. It works by copying out the
+// deconstructed flow with some changes for a much narrower search.
+// Ideally this would be a variation within the interface provided by deconstructed.c
+
+
 /*
 This harness allows us to deconstruct the working and output of an idealized FISR.
 

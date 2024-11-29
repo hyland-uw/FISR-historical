@@ -1,18 +1,11 @@
 #include "util-harness.h"
 
-// 2^-8 seems generous, let's try 2^-11
-#define FLOAT_TOL 0.0004882812f
-#define MAX_NR 95
-
-#define LOCAL_FLOAT_START 0.00390625f
-#define LOCAL_FLOAT_END 1.0f
-
 //// Implementations of various inverse square roots.
 //// all should accept:
-////     an input float x, assumed to be positive and normal
-////     an input int NR, assumed to be > 0
+////    * an input float x, assumed to be positive and normal
+////    * an input int NR, assumed to be > 0
 //// all should return:
-////     a float which is an approximation of 1/sqrt(x)
+////    * a float which is an approximation of 1/sqrt(x)
 
 // FISR demonstrating the logaritmic nature of the floating-point numbers
 // The constant chosen is not "magic" but that which replaces the lost
@@ -84,7 +77,38 @@ float gridISR(float x, int NR) {
     union { float f; uint32_t u; } y = {x};
     y.u = magic - (y.u >> 1);
     while (NR > 0) {
+        // Turns out that while being locally optimal,
+        // this structure gets the algorithm "stuck"
+        // on guesses which don't result in changes in output.
         y.f = 0.703952253f * y.f * (2.38924456f - x * y.f * y.f);
+        NR--;
+    }
+    return y.f;
+}
+
+// Naive guesses are used to help show the virtue of a good guess
+// We can track number of iterations for convergence, which
+// for naive guesses is meaningful, where most of the
+// optimized guesses will converge to tight tolerances after 1 or 2
+// iterations.
+
+// 1/x is a good approximation where x >> 1
+float NaiveISR_1_over_x(float x, int NR) {
+    union { float f; uint32_t u; } y = {x};
+    y.f = 1.0f / x;
+    while (NR > 0) {
+        y.f = y.f * (1.5f - 0.5f * x * y.f * y.f);
+        NR--;
+    }
+    return y.f;
+}
+
+// x is a particularly bad guess...unless x ~ 1
+float NaiveISR_x(float x, int NR) {
+    union { float f; uint32_t u; } y = {x};
+    y.f = x;
+    while (NR > 0) {
+        y.f = y.f * (1.5f - 0.5f * x * y.f * y.f);
         NR--;
     }
     return y.f;
@@ -99,6 +123,8 @@ ISREntry isr_table[] = {
     {"Kahan", withoutDivISR},
     {"Moroz", MorozISR},
     {"Kadlec", gridISR},
+    {"Naive_1_over_x", NaiveISR_1_over_x},
+    {"Naive_x", NaiveISR_x},
     {NULL, NULL} // Sentinel to mark the end of the array
 };
 
@@ -114,7 +140,7 @@ float FISR(const char *name, float x, int NR) {
 
 void compare_isr_methods(float input) {
     float reference = 1.0f / sqrtf(input);
-    float result;
+    float result, error;
     for (int i = 0; isr_table[i].name != NULL; i++) {
         float initial_guess = FISR(isr_table[i].name, input, 0);
         float one_iteration = FISR(isr_table[i].name, input, 1);
@@ -122,7 +148,8 @@ void compare_isr_methods(float input) {
         int iterations = 0;
         do {
             result = FISR(isr_table[i].name, input, iterations);
-            if (fabsf(result - reference) <= FLOAT_TOL) {
+            error = fabsf(result - reference) / reference;
+            if (error <= FLOAT_TOL) {
                 break;
             }
             iterations++;
@@ -137,9 +164,9 @@ int main() {
     srand(time(NULL));
 
     printf("input, method, guess, after_one, final, iters\n");
-
+    // start/end and slices defined in the utility harness
     for (int draw = 0; draw < FLOAT_SLICES; draw++) {
-        float input = logStratifiedSampler(LOCAL_FLOAT_START, LOCAL_FLOAT_END);
+        float input = logStratifiedSampler(FLOAT_START, FLOAT_END);
         compare_isr_methods(input);
     }
 

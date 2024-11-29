@@ -22,6 +22,13 @@
 #define FLOAT_START 0.03125f
 #define FLOAT_END 1.0f
 
+// For approximated.c and other files which iterate to a tolerance,
+// we can use 2^-11
+#define FLOAT_TOL 0.0004882812f
+// most guesses which converge do so before 95 iterations
+#define MAX_NR 95
+
+
 // For selection of magic constant over many floats
 #define NUM_FLOATS 131072 // Number of floats to process (131072 is good)
 #define MAGIC_CONSTANT_DRAWS 32768 // number of integer constant samples per float
@@ -78,6 +85,9 @@ float QuakeISR(float x, int NR);
 float withoutDivISR(float x, int NR);
 float MorozISR(float x, int NR);
 float gridISR(float x, int NR);
+float NaiveISR_x(float x, int NR);
+float NaiveISR_1_over_x(float x, int NR);
+
 
 typedef struct {
     const char *name;
