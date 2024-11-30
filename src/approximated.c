@@ -69,7 +69,6 @@ float MorozISR(float x, int NR) {
 // See https://web.archive.org/web/20220826232306/http://rrrola.wz.cz/inv_sqrt.html
 // Optimal Newton-Raphson / magic constant combination
 // found via brute force search of the 32-bit integer space
-
 // Fails to converge for iterations >= 2
 // see https://gist.github.com/Protonk/a96a317dcc6a381b834f36a1abd275ed
 float gridISR(float x, int NR) {
@@ -93,6 +92,7 @@ float gridISR(float x, int NR) {
 // iterations.
 
 // 1/x is a good approximation where x >> 1
+// It's less good elsewhere
 float NaiveISR_1_over_x(float x, int NR) {
     union { float f; uint32_t u; } y = {x};
     y.f = 1.0f / x;
@@ -138,7 +138,7 @@ float FISR(const char *name, float x, int NR) {
     return NAN;
 }
 
-void compare_isr_methods(float input) {
+void compare_isr_methods(float input, float tol, int limit) {
     float reference = 1.0f / sqrtf(input);
     float result, error;
     for (int i = 0; isr_table[i].name != NULL; i++) {
@@ -149,11 +149,11 @@ void compare_isr_methods(float input) {
         do {
             result = FISR(isr_table[i].name, input, iterations);
             error = fabsf(result - reference) / reference;
-            if (error <= FLOAT_TOL) {
+            if (error <= tol) {
                 break;
             }
             iterations++;
-        } while (iterations < MAX_NR);
+        } while (iterations < limit);
 
         printf("%e,%s,%e,%e,%e,%d\n",
                input, isr_table[i].name, initial_guess, one_iteration, result, iterations);
@@ -167,7 +167,7 @@ int main() {
     // start/end and slices defined in the utility harness
     for (int draw = 0; draw < FLOAT_SLICES; draw++) {
         float input = logStratifiedSampler(FLOAT_START, FLOAT_END);
-        compare_isr_methods(input);
+        compare_isr_methods(input, FLOAT_TOL, MAX_NR);
     }
 
     return 0;
