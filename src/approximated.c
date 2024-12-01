@@ -163,7 +163,7 @@ void compare_isr_methods(float input, float tol, int limit) {
 int main() {
     srand(time(NULL));
 
-    printf("input, method, guess, after_one, final, iters\n");
+    printf("input, method, guess, after_one, final, iterations\n");
     // start/end and slices defined in the utility harness
     for (int draw = 0; draw < FLOAT_SLICES; draw++) {
         float input = logStratifiedSampler(FLOAT_START, FLOAT_END);

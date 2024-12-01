@@ -20,7 +20,7 @@
 // The function repeats, so passing a few binades is sufficient to see
 // behavior.
 #define FLOAT_START 0.03125f
-#define FLOAT_END 1.0f
+#define FLOAT_END 2.5f
 
 // For approximated.c and other files which iterate to a tolerance,
 // we can use 2^-11
@@ -34,7 +34,7 @@
 #define MAGIC_CONSTANT_DRAWS 32768 // number of integer constant samples per float
 
 // For visualizing
-#define FLOAT_SLICES 12288 // number for optimized/approximated/extracted
+#define FLOAT_SLICES 18432 // number for optimized/approximated/extracted
 #define FLOAT_VIS_SLICES 2048 // Smaller slices for sliced.c to keep file size down
 #define INTEGER_SAMPLES_PER_SLICE 2048 // number of integers to sample for single float search
 #define INTEGER_SELECTIONS 256 // winnow best performers
