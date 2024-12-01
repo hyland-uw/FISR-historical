@@ -113,36 +113,15 @@ approximated %>%
        fill = "Approximation\nmethod")
 
 
-approximated %>%
-  filter(method %in% c("QuakeIII")) %>%
-  mutate(relErrGuess = (guess - reference) / reference,
-         relErrNR = (after_one - reference) / reference) %>% 
-  ggplot(aes(x = input)) + 
-  geom_ribbon(aes(ymin = pmin(relErrGuess, relErrNR),
-                  ymax = pmax(relErrGuess, relErrNR),
-                  fill = method),
-              alpha = 0.3) +
-  geom_line(aes(y = relErrGuess,
-                linetype = "Initial guess"),
-            linewidth = 1.1) +
-  geom_line(aes(y = relErrNR,
-                linetype = "After one iteration")) +
-  scale_linetype_manual(name = "Newton-Raphson",
-                        values = c("Initial guess" = "solid", 
-                                   "After one iteration" = "dotted")) +
-  guides(fill = "none") +
-  xlim(0.25, 2) + 
-  labs(y = "Relative error") + 
-  facet_wrap(~ method)
 
 
-
-
+### combines a more robust arrow system with the 
+### normal NR plot above
 nrplot <- function(df = approximated, approx = "QuakeIII") {
   # First create the desired regularly spaced x values
   target_xs <- seq(0.25, 2, by = 0.125)
   temp <- df %>%
-    filter(method == approx)
+    filter(method %in% approx)
   # Then find the closest actual input values in the dataset
   segment_data <- temp %>%
     mutate(closest_target = target_xs[sapply(input, function(x) 
@@ -164,6 +143,7 @@ nrplot <- function(df = approximated, approx = "QuakeIII") {
     geom_line(aes(y = relErrNR,
                   linetype = "After one iteration")) +
     scale_linetype_manual(name = "Newton-Raphson",
+                          breaks = c("Initial guess", "After one iteration"),
                           values = c("Initial guess" = "solid", 
                                      "After one iteration" = "dotted")) +
     guides(fill = "none") +
@@ -176,7 +156,10 @@ nrplot <- function(df = approximated, approx = "QuakeIII") {
                  arrow = arrow(length = unit(0.2, "cm"), type = "closed"),
                  show.legend = FALSE) +
     xlim(0.25, 2) + 
-    labs(y = "Relative error") -> output
+    labs(y = "Relative error",
+         title = "For good guesses, an iteration of Newton-Raphson markedly reduces error",
+         x = "Input") +
+    facet_wrap(~ method) -> output
   return(output)
 }
 nrplot()
