@@ -1,13 +1,9 @@
 #include "util-harness.h"
 
-
-/// Kept for historical purposes. This does not actually compile to a csv in the correct format
-/// so I removed it from the makefile.
 #define MIN_NARROW_INT 0x5F290000
 #define MAX_NARROW_INT 0x5F410000
 #define SAMPLES_PER_SLICE 2560
 
-// Function repeats exactly over this range
 #define CYCLE_START 0.25f
 #define CYCLE_END 1.0f
 
@@ -18,6 +14,25 @@ typedef struct {
     float avg_error;
     float max_error;
 } Slice;
+
+float minimal_rsqrt(float x, uint32_t magic, int iterations) {
+    union {
+        float f;
+        uint32_t i;
+    } conv;
+    conv.f = x;
+    conv.i = magic - (conv.i >> 1);
+    float y = conv.f;
+    for (int i = 0; i < iterations; i++) {
+        y = y * (1.5f - 0.5f * x * y * y);
+    }
+    return y;
+}
+
+float logStratifiedSampler(float min, float max) {
+    float r = (float)rand() / RAND_MAX;
+    return min * powf(max / min, r);
+}
 
 float calculate_errors(float min, float max, uint32_t magic, int samples, float *max_error) {
     float total_error = 0.0f;
@@ -67,7 +82,6 @@ void find_optimal_constants(Slice slices[], int N_BINS) {
         for (uint32_t magic = MIN_NARROW_INT; magic <= MAX_NARROW_INT; magic++) {
             float max_error;
             float avg_error = calculate_errors(slices[i].min, slices[i].max, magic, SAMPLES_PER_SLICE, &max_error);
-
             if (max_error < min_max_error) {
                 min_max_error = max_error;
                 slices[i].magic = magic;
@@ -79,16 +93,12 @@ void find_optimal_constants(Slice slices[], int N_BINS) {
 }
 
 void print_results(Slice slices[], int N_BINS) {
-    printf("Optimal constants for %d slices between %.3f and %.3f:\n", N_BINS, CYCLE_START, CYCLE_END);
-    float sum_avg_error = 0.0f;
-    float sum_max_error = 0.0f;
+    printf("N,Range_Min,Range_Max,Magic,Avg_Relative_Error,Max_Relative_Error\n");
     for (int i = 0; i < N_BINS; i++) {
-        printf("Range %.3f - %.3f: Magic = 0x%08X, Avg Relative Error = %.9f, Max Relative Error = %.9f\n",
-               slices[i].min, slices[i].max, slices[i].magic, slices[i].avg_error, slices[i].max_error);
-        sum_avg_error += slices[i].avg_error;
-        sum_max_error += slices[i].max_error;
+        printf("%d,%.3f,%.3f,0x%08X,%.9f,%.9f\n",
+               N_BINS, slices[i].min, slices[i].max, slices[i].magic,
+               slices[i].avg_error, slices[i].max_error);
     }
-    printf("Normalized Avg Relative error = %.9f ---- Normalized Max Relative Error = %.9f\n\n", sum_avg_error / N_BINS, sum_max_error / N_BINS);
 }
 
 int main() {
@@ -106,9 +116,8 @@ int main() {
     return 0;
 }
 
-
 /*
-Output for N = {4, 8, 16, 32}, 2560 samples per slice
+Old output for N = {4, 8, 16, 32}, 2560 samples per slice
 
 Optimal constants for 4 slices between 0.250 and 1.000:
 Range 0.250 - 0.354: Magic = 0x5F38311B, Avg Relative Error = 0.000499069, Max Relative Error = 0.001352865
