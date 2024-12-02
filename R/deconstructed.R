@@ -20,15 +20,20 @@ deconstructed <- deconstructed %>%
   mutate(iters = factor(iters, levels = 1:max(iters), labels = 1:max(iters)))
 
 ### rank input and magic values for easier binning
+## note that initial and after rank
+## are determined based on their distance from the reference output
 deconstructed <- deconstructed %>%
   mutate(
     input_rank = ntile(input, 128),
     magic_rank = ntile(magic, 128),
     frac_rank = ntile(partial_fraction, 128),
-    initial_rank = ntile(initial, 128),
-    after_rank = ntile(after_one, 128)
+    initial_rank = ntile(initial - reference, 128),
+    after_rank = ntile(after_one - reference, 128)
   )
 
+## iter rank is defined specifically to 
+## track small differences w/ low numbers
+## of iteration and bin with larger ranges
 deconstructed$iter_rank <- cut(as.numeric(deconstructed$iters), 
                          breaks = c(0, 1, 2, 3, 4, 24, 60, 94),
                          labels = c("1", "2", "3", "4", "5-24", "25-60", "61-94"))
@@ -46,10 +51,13 @@ widened <- widened %>%
   filter(iters <= 94) %>%
   mutate(iters = factor(iters, levels = 1:max(iters), labels = 1:max(iters)))
 
+## should be identical to the breakdown for deconstructed
+## so that we can plot them with the same legend later
 widened$iter_rank <- cut(as.numeric(widened$iters), 
                          breaks = c(0, 1, 2, 3, 4, 24, 60, 94),
                          labels = c("1", "2", "3", "4", "5-24", "25-60", "61-94"))
 
+## more compact function for annotation
 mc_annotate <- function(magic_value, label, color, x_start = -0.035, x_end = 0.036, text_size = 8) {
   list(
     annotate("segment", x = x_start, xend = x_end, y = magic_value, yend = magic_value, 
@@ -60,7 +68,10 @@ mc_annotate <- function(magic_value, label, color, x_start = -0.035, x_end = 0.0
   )
 }
 
-## force specific plotting order
+## force specific plotting order so we can plot low iterations "on top of"
+## higher iterations so overplotting doesn't cover the optimal range
+# required there to be a variable "iters"
+# which we can walk over
 create_geom_points <- function(data, iter_range, shape, size, alpha = 1) {
   lapply(iter_range, function(i) {
     geom_point(data = data[data$iters == i, ],
@@ -71,8 +82,11 @@ create_geom_points <- function(data, iter_range, shape, size, alpha = 1) {
 }
 
 ## from https://stackoverflow.com/a/23574127/1188479
+## descending color scale
 iter_colors <- colorRampPalette(c("dodgerblue2", "red"))(as.numeric(max(levels(deconstructed$iters))))
 
+## creates a quasi-divergent color scale which 
+## privileges one iteration.
 iter_rank_hue <- c("lightblue", colorRampPalette(c("white", "orange1", "red"))(7))
 
 ## from https://stackoverflow.com/a/9568659/1188479
@@ -95,23 +109,26 @@ c25 <- c(
 
 ### plots here
 
+## Plot of errors and rate of convergence against input
 ggplot(deconstructed,
        aes(x = input,
            y = initial - reference,
            color = iters)) +
   create_geom_points(deconstructed, as.numeric(max(levels(deconstructed$iters))):1, 16, 2, 0.95) +
   guides(alpha = "none") +
-  scale_color_manual(values=setNames(iter_colors, 1:as.numeric(max(levels(deconstructed$iters))))) +
+  scale_color_manual(values = setNames(iter_colors, 1:as.numeric(max(levels(deconstructed$iters)))),
+                     breaks = 1:6)  +
   labs(color = "Iteration\nCount",
-       title = "A poor guess can be low and still converge") +
+       title = "Rate of convergence is not symmetric about first guess errors") +
   ylab("Error before NR Iteration") +
   xlab("Input float")
 
 ## good plot to show what ranges are probably optimal for the constant
-
-
-### clear plot of behavior by constant range
+## above 4 iterations, we see different behavior for large
+## and small constants and the plot becomes less 
+## symmetrical
 deconstructed %>%
+  filter(as.numeric(iters) <= 4) %>%
   group_by(iters) %>%
   summarize(min_magic = min(magic),
             max_magic = max(magic)) %>%
@@ -138,9 +155,27 @@ ggplot(deconstructed,
        x = "Relative error before Newton-Raphson",
        y = "Relative error after one iteration",
        color = "Iterations\nuntil\neventual\nconvergence") + 
-  ylim(-0.75, NA)
+  ylim(-0.5, NA)
 
-## artistic plot of the range of outcomes
+## another plot of the relationship. 
+## this can show the "kink" which is only barely visible
+## in the combined plot
+ggplot(deconstructed,
+       aes(x = (initial - reference) / reference,
+           y = abs(initial - reference)/reference - abs(after_one - reference)/reference,
+           color = iter_rank)) +
+  geom_point(shape = 16, size = 0.5) +
+  scale_color_manual(
+    values = iter_rank_hue,
+    guide = guide_legend(override.aes = list(size = 3))) +
+  labs(x = "Relative error of first guess",
+       y = "Improvement from one Newton-Raphson step",
+       color = "Iterations\nto convergence",
+       title = "Plotted against relative improvement, the optimal region is more clearly visible")
+
+## artistic plots of the range of outcomes
+
+# painterly
 ggplot(deconstructed,
        aes(x = magic,
            y = input,
@@ -160,6 +195,19 @@ ggplot(deconstructed,
   coord_polar(theta = "x") +
   theme_void()
 
+# wings
+ggplot(deconstructed,
+       aes(x = initial_rank,
+           y = after_rank,
+           fill = partial_fraction)) +
+  geom_tile() +
+  guides(fill = "none") +
+  theme_void()
+
+#### Combined plot of a wide integer sample and a narrow sample around the 
+#### optimal point. This allows for a "zoom" to see details where
+#### the narrow range won't show the structure of the wide range and vice
+#### versa
 
 # plot to be subset
 
@@ -181,6 +229,7 @@ subset_plot <- deconstructed %>%
   annotate("rect", alpha=0.2, fill="blue",
            xmin=-Inf, xmax=-0.125,
            ## this is 1048576, 1/8192th of the possible search space
+           ## as there are 2^32 unsigned integers
            ymin=0x5F300000, ymax=0x5F400000) +
   annotate("rect", alpha=0.2, fill="blue",
            xmin=0.125, xmax=Inf,

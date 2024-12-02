@@ -46,7 +46,7 @@ approximated %>%
     scale_x_continuous(trans = 'log2',
                        breaks = scales::trans_breaks("log2", function(x) 2^x, n = 4),
                        labels = function(x) round(x, 4),
-                       limits = c(2^-4, 2^-1))
+                       limits = c(0.25, 1))
 
 
 ### Good plot showing NR and naive choices
@@ -72,6 +72,7 @@ approximated %>%
             linewidth = 1.2) +
   scale_color_discrete(labels = c("1 / x", "x"), name = "Method for\nfirst guess") +
   scale_linetype_manual(name = "Newton-Raphson",
+                        breaks = c("Initial guess", "After one iteration"),
                         values = c("Initial guess" = "solid", 
                                    "After one iteration" = "dotted")) +
   guides(color = guide_legend(override.aes = list(linewidth = 1.5)),
