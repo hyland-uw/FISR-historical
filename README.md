@@ -42,7 +42,9 @@ Computes optimal magic constants for different bin sizes over an input domain [0
 | 8 | 0.250 | 0.297 | 0x5F3B30BF | 0.000168382 | 0.000513039 |
 | 8 | 0.297 | 0.354 | 0x5F3431D9 | 0.000067955 | 0.000189403 |
 
-Rather than choosing a single constant or (see below) determining an optimal constant *per float*, we can use this data to select an optimal bucket of constants across our input domain. 
+![A comparison of errors for bin size choices](/plots/error_comp_binned.png)
+
+Rather than choosing a single constant or (see below) determining an optimal constant *per float*, we can use this data to select an optimal bucket of constants across our input domain.
 
 #### Deconstructed
 
