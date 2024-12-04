@@ -1,11 +1,13 @@
 library(tidyr)
 library(lpSolve)
+library(purrr)
 
 ## use kable(binned, format = "simple")
 ## from library(knitr)
 
 binned <- read.csv("../data/binned.csv")
 
+## useful for when we mix and match to optimize
 binned <- binned %>%
   group_by(N) %>%
   mutate(Slice = row_number())
@@ -270,3 +272,30 @@ plot_multiple_n <- function(binned, n_values = unique(binned$N)) {
                        limits = c(0.25, 1.0)) +
     theme_minimal()
 }
+
+
+## "weight" error by the fraction of the domain
+## it covers. 
+norm_errorN <- function(df, bins) {
+  bucket <- find_optimal_buckets(df, bins)
+  ## the things we do to leave tibbles
+  bucket$Width <- ((bucket[, "Range_Max"] - bucket[, "Range_Min"]) /0.75)[,1]
+  bucket <- bucket %>%
+    # if you don't pick N, dplyr complains and does it anyway
+    select(N, Max_Relative_Error, Width) %>%
+    rename(Error = Max_Relative_Error)
+  ## avoids privileging small bucket sizes
+  sum_err <- with(bucket, sum(Error*Width))
+  return(sum_err)
+}
+
+# Use purrr::map_dfr to apply the function to each bin value
+# why this is better than a for loop is unclear
+map_dfr(4:36, ~tibble(bins = .x, error = norm_errorN(binned, .x))) %>%
+ggplot(aes(x = bins, y = error)) +
+  geom_line() +
+  geom_point() +
+  labs(x = "Bins",
+       y = "Normalized Error",
+       title = "Optimal bucket selection error reduction slows after 24 bins") +
+  scale_x_continuous(breaks = seq(4, 36, by = 4))

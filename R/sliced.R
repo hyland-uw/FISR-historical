@@ -2,8 +2,6 @@ library(tidyr)
 library(dplyr)
 library(forcats)
 
-### functions at the top
-
 # returns a df with rank_N and best_N columns
 find_best_magic_constants <- function(rank, df = sliced, takeN = 4) {
 
@@ -317,7 +315,7 @@ ggplot(aggregate(error ~ input, sliced, range)) +
   ylab("Relative error") + xlab("Input") +
   labs(title = "Deciles of error for all constants by input float")
 
-### useful plots of differences in constantys by error
+### useful plots of differences in constants by error
 error_col <- colorRampPalette(c("dodgerblue2", "red"))(length(unique(diced$error_rank)))
 ggplot(diced,
        aes(x = input_rank,
