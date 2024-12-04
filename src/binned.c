@@ -1,8 +1,11 @@
 #include "util-harness.h"
 
+// not included in normal compilation because it is very resource intensive with the below
+// parameters
+
 #define MIN_NARROW_INT 0x5F290000
 #define MAX_NARROW_INT 0x5F410000
-#define SAMPLES_PER_SLICE 2560
+#define SAMPLES_PER_SLICE 2048
 
 #define CYCLE_START 0.25f
 #define CYCLE_END 1.0f
@@ -14,25 +17,6 @@ typedef struct {
     float avg_error;
     float max_error;
 } Slice;
-
-float minimal_rsqrt(float x, uint32_t magic, int iterations) {
-    union {
-        float f;
-        uint32_t i;
-    } conv;
-    conv.f = x;
-    conv.i = magic - (conv.i >> 1);
-    float y = conv.f;
-    for (int i = 0; i < iterations; i++) {
-        y = y * (1.5f - 0.5f * x * y * y);
-    }
-    return y;
-}
-
-float logStratifiedSampler(float min, float max) {
-    float r = (float)rand() / RAND_MAX;
-    return min * powf(max / min, r);
-}
 
 float calculate_errors(float min, float max, uint32_t magic, int samples, float *max_error) {
     float total_error = 0.0f;
@@ -93,7 +77,6 @@ void find_optimal_constants(Slice slices[], int N_BINS) {
 }
 
 void print_results(Slice slices[], int N_BINS) {
-    printf("N,Range_Min,Range_Max,Magic,Avg_Relative_Error,Max_Relative_Error\n");
     for (int i = 0; i < N_BINS; i++) {
         printf("%d,%.3f,%.3f,0x%08X,%.9f,%.9f\n",
                N_BINS, slices[i].min, slices[i].max, slices[i].magic,
@@ -102,9 +85,9 @@ void print_results(Slice slices[], int N_BINS) {
 }
 
 int main() {
-    int bin_counts[] = {4, 8, 16, 32};
+    int bin_counts[] = {4, 8, 16, 32, 64};
     int num_bin_counts = sizeof(bin_counts) / sizeof(bin_counts[0]);
-
+    printf("N,Range_Min,Range_Max,Magic,Avg_Relative_Error,Max_Relative_Error\n");
     for (int i = 0; i < num_bin_counts; i++) {
         int N_BINS = bin_counts[i];
         Slice *slices = malloc(N_BINS * sizeof(Slice));

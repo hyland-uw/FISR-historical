@@ -1,58 +1,53 @@
 library(tidyr)
+library(lpSolve)
+
+## use kable(binned, format = "simple")
+## from library(knitr)
+
 binned <- read.csv("../data/binned.csv")
 
 binned <- binned %>%
   group_by(N) %>%
   mutate(Slice = row_number())
 
-library(knitr)
-kable(binned, format = "simple")
+## helper function for linear programming
+find_optimal_buckets <- function(binned, M) {
+  # Create objective vector (minimize total max error)
+  obj <- binned$Max_Relative_Error
+  
+  # Create constraint matrix
+  n_slices <- nrow(binned)
+  
+  # Constraint 1: Each input value must be covered exactly once
+  input_points <- sort(unique(c(binned$Range_Min, binned$Range_Max)))
+  coverage_matrix <- matrix(0, nrow = length(input_points) - 1, ncol = n_slices)
+  
+  for(i in 1:(length(input_points) - 1)) {
+    mid_point <- (input_points[i] + input_points[i + 1]) / 2
+    coverage_matrix[i,] <- as.numeric(
+      binned$Range_Min <= mid_point & binned$Range_Max >= mid_point
+    )
+  }
+  
+  # Constraint 2: Use exactly M slices
+  slice_constraint <- matrix(1, nrow = 1, ncol = n_slices)
+  
+  # Combine constraints
+  const.mat <- rbind(coverage_matrix, slice_constraint)
+  const.dir <- c(rep("==", nrow(coverage_matrix)), "==")
+  const.rhs <- c(rep(1, nrow(coverage_matrix)), M)
+  
+  # Solve using lpSolve
+  result <- lp("min", obj, const.mat, const.dir, const.rhs, all.bin = TRUE)
+  
+  # Extract selected slices
+  selected <- binned[result$solution == 1, ]
+  
+  return(selected %>% arrange(Range_Min))
+}
 
 
 ### plots
-
-
-ggplot(binned, aes(x = (Range_Min + Range_Max) /2 )) +
-  geom_step(aes(y = Avg_Relative_Error, color = "Avg Error")) +
-  geom_step(aes(y = Max_Relative_Error, color = "Max Error")) +
-  facet_wrap(~N, scales = "free_y") +
-  scale_color_manual(values = c("Avg Error" = "blue", "Max Error" = "red")) +
-  labs(title = "Error Trends Across Input Range",
-       x = "Input Value",
-       y = "Error",
-       color = "Error Type") +
-  scale_x_continuous(breaks = seq(0.25, 1, by = 0.25)) +
-  theme_minimal()
-
-
-# First create the horizontal segments dataset as before
-segments_h <- binned %>%
-  pivot_longer(
-    cols = c(Avg_Relative_Error, Max_Relative_Error),
-    names_to = "Error_Type",
-    values_to = "Error"
-  ) %>%
-  mutate(Error_Type = factor(Error_Type, 
-                             levels = c("Avg_Relative_Error", "Max_Relative_Error"),
-                             labels = c("Avg Error", "Max Error")))s
-
-# Plot with corrected color mapping
-ggplot() +
-  geom_segment(data = segments_h,
-               aes(x = Range_Min, xend = Range_Max,
-                   y = Error, yend = Error,
-                   color = Error_Type),
-               linewidth = 1.15) +
-  facet_wrap(~N, scales = "free_y") +
-  scale_color_manual(values = c("Avg Error" = "blue", "Max Error" = "red")) +
-  labs(title = "Error Trends Across Input Range",
-       x = "Input Value",
-       y = "Error") +
-  scale_x_continuous(breaks = seq(0.25, 1, by = 0.25),
-                     limits = c(0.25, 1.0)) +
-  theme_minimal()
-
-
 
 ## pseudo-waterfall
 
@@ -97,12 +92,71 @@ compare_n_values <- function(binned, n_small, n_large) {
     theme_minimal()
 }
 
+compare_buckets <- function(bucket1, bucket2, error = "max") {
+  error_col <- if(error == "max") "Max_Relative_Error" else "Avg_Relative_Error"
+  
+  # Get all unique x-points where rectangles should start or end
+  x_points <- sort(unique(c(
+    bucket1$Range_Min, bucket1$Range_Max,
+    bucket2$Range_Min, bucket2$Range_Max
+  )))
+  
+  # Create rectangles for each adjacent pair of x-points
+  rectangles <- tibble(
+    xmin = x_points[-length(x_points)],
+    xmax = x_points[-1]
+  ) %>%
+    mutate(
+      # Find error values for each range
+      error1 = sapply(xmin, function(x) {
+        bucket1[[error_col]][x >= bucket1$Range_Min & x < bucket1$Range_Max][1]
+      }),
+      error2 = sapply(xmin, function(x) {
+        bucket2[[error_col]][x >= bucket2$Range_Min & x < bucket2$Range_Max][1]
+      }),
+      # Determine rectangle properties
+      ymin = pmin(error1, error2),
+      ymax = pmax(error1, error2),
+      fill_color = if_else(error2 < error1, "blue", "red")
+    )
+  
+  # Create horizontal segments for both buckets
+  segments_h1 <- bucket1 %>%
+    select(Range_Min, Range_Max, Error = !!sym(error_col))
+  
+  segments_h2 <- bucket2 %>%
+    select(Range_Min, Range_Max, Error = !!sym(error_col))
+  
+  ggplot() +
+    # Horizontal segments for both buckets
+    geom_segment(data = segments_h1,
+                 aes(x = Range_Min, xend = Range_Max,
+                     y = Error, yend = Error),
+                 color = "black", linewidth = 0.5) +
+    geom_segment(data = segments_h2,
+                 aes(x = Range_Min, xend = Range_Max,
+                     y = Error, yend = Error),
+                 color = "black", linewidth = 0.5) +
+    # Rectangles
+    geom_rect(data = rectangles,
+              aes(xmin = xmin, xmax = xmax,
+                  ymin = ymin, ymax = ymax,
+                  fill = fill_color),
+              alpha = 0.3) +
+    scale_fill_identity() +
+    scale_x_continuous(breaks = seq(0.25, 1, by = 0.25),
+                       limits = c(0.25, 1.0)) +
+    labs(title = "Comparison of Error Values Between Base and Extension",
+         x = "Input Value",
+         y = paste(error, "Relative Error")) +
+    theme_minimal()
+}
+
 
 ## working single slice visualization
-plot_single_n <- function(binned, n_value) {
+plot_bucket <- function(df) {
   # Create horizontal segments dataset
-  segments_h <- binned %>%
-    filter(N == n_value) %>%
+  segments_h <- df %>%
     pivot_longer(
       cols = c(Avg_Relative_Error, Max_Relative_Error),
       names_to = "Error_Type",
@@ -115,25 +169,20 @@ plot_single_n <- function(binned, n_value) {
   # Create vertical segments dataset - now including both ends of each range
   segments_v <- bind_rows(
     # Segments for the ending ranges
-    binned %>%
-      filter(N == n_value) %>%
-      slice(1:(n()-1)) %>%
+    df %>%
       transmute(
         x = Range_Max,
         y_start = Avg_Relative_Error,
         y_end = Max_Relative_Error
       ),
     # Segments for the starting ranges
-    binned %>%
-      filter(N == n_value) %>%
-      slice(2:n()) %>%
+    df %>%
       transmute(
         x = Range_Min,
         y_start = Avg_Relative_Error,
         y_end = Max_Relative_Error
       )
   )
-  
   ggplot() +
     # Horizontal segments
     geom_segment(data = segments_h,
@@ -146,11 +195,11 @@ plot_single_n <- function(binned, n_value) {
                  aes(x = x, xend = x,
                      y = y_start, yend = y_end),
                  linetype = "dotted",
-                 color = "black") +
+                 color = "black",
+                 linewidth = 0.25,
+                 alpha = 0.75) +
     scale_color_manual(values = c("Avg Error" = "blue", "Max Error" = "red")) +
-    labs(title = sprintf("Error Trends for N=%d",
-                         n_value),
-         x = "Input Value",
+    labs(x = "Input Value",
          y = "Error") +
     scale_x_continuous(breaks = seq(0.25, 1, by = 0.25),
                        limits = c(0.25, 1.0)) +
@@ -209,8 +258,10 @@ plot_multiple_n <- function(binned, n_values = unique(binned$N)) {
                  aes(x = x, xend = x,
                      y = y_start, yend = y_end),
                  linetype = "dotted",
-                 color = "black") +
-    facet_wrap(~N, scales = "free_y") +
+                 color = "black",
+                 linewidth = 0.25,
+                 alpha= 0.75) +
+    facet_grid(cols = vars(N)) +
     scale_color_manual(values = c("Avg Error" = "blue", "Max Error" = "red")) +
     labs(title = "Error Trends Across Input Range",
          x = "Input Value",
@@ -218,4 +269,58 @@ plot_multiple_n <- function(binned, n_values = unique(binned$N)) {
     scale_x_continuous(breaks = seq(0.25, 1, by = 0.25),
                        limits = c(0.25, 1.0)) +
     theme_minimal()
+}
+
+
+
+find_optimal_buckets <- function(binned, M) {
+  # Helper function to check if a combination is valid (covers full range)
+  is_valid_combination <- function(combo) {
+    ranges <- combo %>%
+      arrange(Range_Min) %>%
+      mutate(next_min = lead(Range_Min))
+    # Check if ranges are continuous
+    all(ranges$Range_Max == ranges$next_min, na.rm = TRUE) &&
+      ranges$Range_Min[1] == 0.25 &&
+      ranges$Range_Max[nrow(ranges)] == 1.0
+  }
+  # Helper function to calculate total error for a combination
+  calculate_total_error <- function(combo) {
+    sum(combo$Max_Relative_Error)
+  }
+  # Main optimization function
+  find_best_combination <- function(remaining_M, current_range_start = 0.25,
+                                    current_combo = NULL, best_so_far = NULL) {
+    if (remaining_M == 0 && current_range_start == 1.0) {
+      # Valid combination found
+      return(list(
+        combination = current_combo,
+        total_error = calculate_total_error(current_combo)
+      ))
+    }
+    if (remaining_M <= 0 || current_range_start >= 1.0) {
+      return(NULL)
+    }
+    # Try each possible next slice
+    possible_slices <- binned %>%
+      filter(Range_Min >= current_range_start,
+             N %in% c(4, 8, 16, 32))
+    best_result <- NULL
+    for (i in 1:nrow(possible_slices)) {
+      slice <- possible_slices[i,]
+      new_combo <- bind_rows(current_combo, slice)
+      result <- find_best_combination(
+        remaining_M - 1,
+        slice$Range_Max,
+        new_combo,
+        best_so_far
+      )
+      if (!is.null(result) &&
+          (is.null(best_result) ||
+           result$total_error < best_result$total_error)) {
+        best_result <- result
+      }
+    }
+    return(best_result)
+  }
 }
