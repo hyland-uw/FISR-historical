@@ -1,10 +1,15 @@
 #include "util-harness.h"
 
+#define MAGIC_CONSTANT 0x5F400000
+
+typedef struct {
+    float A;        // First coefficient
+    float B;        // Second coefficient
+} NRParams;
+
 typedef struct {
     float input;
-    float y_naught;
-    float halfthree;
-    float halfone;
+    NRParams params;
     float error;
 } Result;
 
@@ -13,71 +18,92 @@ typedef struct {
     Result results[GRID_SIZE*GRID_SIZE];
 } ResultBlock;
 
+float A_grid[GRID_SIZE];
+float B_grid[GRID_SIZE];
 
-float x_grid[GRID_SIZE];
-float y_grid[GRID_SIZE];
-
-void compute_result_block(float input, uint32_t magic, ResultBlock* block) {
-    float halfthree, halfone, approx, error, system, y_naught;
-    int results_counter = 0;
-    // Calculate system and y_naught once for this input
-    system = 1.0f / sqrtf(input);
+float computeNR(float input, NRParams params) {
     union { float f; uint32_t u; } y = {input};
-    y.u = magic - (y.u >> 1);
-    y_naught = y.f;
+    y.u = MAGIC_CONSTANT - (y.u >> 1);
+    y.f = y.f * (params.A - params.B * input * y.f * y.f);
+    return y.f;
+}
+
+void compute_result_block(float input, ResultBlock* block) {
+    float approx, error, system;
+    int results_counter = 0;
+    system = 1.0f / sqrtf(input);
 
     for (int i = 0; i < GRID_SIZE; i++) {
-        halfthree = x_grid[i];
         for (int j = 0; j < GRID_SIZE; j++) {
-            halfone = y_grid[j];
-            approx = y.f * (halfthree - halfone * input * y.f * y.f);
+            NRParams params = {.A = A_grid[i], .B = B_grid[j]};
+            approx = computeNR(input, params);
             error = fabsf((approx - system) / system);
-            block->results[results_counter] = (Result){input, y_naught, halfthree, halfone, error};
-            results_counter++;
+
+            block->results[results_counter++] = (Result){
+                .input = input,
+                .params = params,
+                .error = error
+            };
         }
     }
 }
 
 void print_result_block(const ResultBlock* block) {
     for (int i = 0; i < GRID_SIZE*GRID_SIZE; i++) {
+        float constraint_deviation = block->results[i].params.A * (block->results[i].params.B - 1.0f) - 1.0f;
         printf("%e,%e,%e,%e,%e\n",
                block->results[i].input,
-               block->results[i].y_naught,
-               block->results[i].halfthree,
-               block->results[i].halfone,
-               block->results[i].error);
+               block->results[i].params.A,
+               block->results[i].params.B,
+               block->results[i].error,
+               constraint_deviation);
     }
     printf("\n");
+}
+
+void initialize_grids(float A_center, float B_center, float half_extent) {
+    for (int i = 0; i < GRID_SIZE; i++) {
+        A_grid[i] = A_center + ((float)rand() / RAND_MAX - 0.5f) * half_extent;
+        B_grid[i] = B_center + ((float)rand() / RAND_MAX - 0.5f) * half_extent;
+    }
+}
+
+void generate_input_samples(float* inputs, int count) {
+    for (int i = 0; i < count; i++) {
+        inputs[i] = logStratifiedSampler(FLOAT_START, FLOAT_END);
+    }
+}
+
+void compute_all_result_blocks(float* inputs, ResultBlock* result_blocks, int count) {
+    #pragma omp parallel for
+    for (int j = 0; j < count; j++) {
+        compute_result_block(inputs[j], &result_blocks[j]);
+    }
+}
+
+void print_all_result_blocks(ResultBlock* result_blocks, int count) {
+    printf("input,A,B,error,constraint_deviation\n");
+    for (int j = 0; j < count; j++) {
+        print_result_block(&result_blocks[j]);
+    }
 }
 
 int main() {
     srand(time(NULL));
 
-    // Generate fixed grid
+    const float A_center = 1.5f;
+    const float B_center = 0.5f;
     const float half_extent = (GRID_SIZE * GRID_STEP) / 2;
-    for (int i = 0; i < GRID_SIZE; i++) {
-        x_grid[i] = (1.5 - half_extent) + i * GRID_STEP;
-        y_grid[i] = (0.5 - half_extent) + i * GRID_STEP;
-    }
+    const int samples = FLOAT_SLICES  / 2;
+    initialize_grids(A_center, B_center, half_extent);
 
-    // Generate range of inputs
-    float inputs[FLOAT_SLICES];
-    for (int i = 0; i < FLOAT_SLICES; i++) {
-        inputs[i] = logStratifiedSampler(FLOAT_START, FLOAT_END);
-    }
+    float inputs[samples];
+    generate_input_samples(inputs, samples);
 
-    // Compute results in parallel and store in an object
-    ResultBlock* result_blocks = malloc(FLOAT_SLICES * sizeof(ResultBlock));
-    #pragma omp parallel for
-    for (int j = 0; j < FLOAT_SLICES; j++) {
-        compute_result_block(inputs[j], 0x5f3759df, &result_blocks[j]);
-    }
+    ResultBlock* result_blocks = malloc(samples * sizeof(ResultBlock));
+    compute_all_result_blocks(inputs, result_blocks, samples);
 
-    // Print results as they come in
-    printf("input,initial,halfthree,halfone,error\n");
-    for (int j = 0; j < FLOAT_SLICES; j++) {
-        print_result_block(&result_blocks[j]);
-    }
+    print_all_result_blocks(result_blocks, samples);
 
     free(result_blocks);
     return 0;

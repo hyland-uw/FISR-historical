@@ -90,8 +90,7 @@ compare_n_values <- function(binned, n_small, n_large) {
     labs(title = sprintf("Comparison of Max Relative Error N=%d vs N=%d",
                          n_small, n_large),
          x = "Input Value",
-         y = "Max Relative Error") +
-    theme_minimal()
+         y = "Max Relative Error")
 }
 
 compare_buckets <- function(bucket1, bucket2, error = "max") {

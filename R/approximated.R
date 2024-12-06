@@ -114,8 +114,6 @@ approximated %>%
        fill = "Approximation\nmethod")
 
 
-
-
 ### combines a more robust arrow system with the 
 ### normal NR plot above
 nrplot <- function(df = approximated, approx = "QuakeIII") {
@@ -164,3 +162,6 @@ nrplot <- function(df = approximated, approx = "QuakeIII") {
   return(output)
 }
 nrplot()
+
+
+

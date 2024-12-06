@@ -8,9 +8,9 @@ optimized <- read.csv("../data/optimized.csv")
 optimized <- optimized[order(optimized[, "input"]), ]
 
 optimized$pair <- paste0("(",
-                         optimized$halfthree,
+                         optimized$A,
                          ", ",
-                         optimized$halfone,
+                         optimized$B,
                          ")")
 
 optimized$pair <- factor(optimized$pair)

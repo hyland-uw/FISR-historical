@@ -31,7 +31,7 @@ float QuakeISR(float x, int NR) {
     y.u = magic - (y.u >> 1);
 
     while (NR > 0) {
-        y.f = y.f * (1.5f - (0.5f * x * y.f * y.f));
+        y.f = y.f * (1.5f - 0.5f * x * y.f * y.f);
         NR--;
     }
     return  y.f;
@@ -47,7 +47,7 @@ float withoutDivISR(float x, int NR) {
     union { float f; uint32_t u; } y = {x};
     y.u = magic - (y.u >> 1);
     while (NR > 0) {
-        y.f = y.f * (1.5f - (0.5f * x * y.f * y.f));
+        y.f = y.f * (1.5f - 0.5f * x * y.f * y.f);
         NR--;
     }
     return y.f;
