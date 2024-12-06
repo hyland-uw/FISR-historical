@@ -24,15 +24,7 @@ ggplot(optimized, aes(x = input,
   guides(color = "none") +
   xlim(0.25, 1) +
   coord_polar(theta = "x") +
-  theme_void() + facet_wrap(~iters)
-
-ggplot(optimized, aes(x = iters,
-                      y = error,
-                      color = pair)) +
-  geom_path() +
-  guides(color = "none") +
   theme_void()
-
 
 # Function to prepare and bin the data
 prepare_binned_data <- function(data, num_bins) {
@@ -90,18 +82,17 @@ animated_plot <- create_animated_heatmap(optimized, 64)
 print(animated_plot)
 anim_save("../plots/animated_heatmap.gif", animation = animated_plot)
 
+## print a binned plot
+print(create_binned_heatmaps(optimized, 9))
+
+## generate a range of errors against params
+ggplot(optimized, aes(x = halfone,
+                      y = log(error),
+                      color = halfthree)) +
+  geom_col() + guides(color = "none")
+
 ####
 # Optionally, save the animation as a GIF file
 # Uncomment the following line to save:
 # anim_save("animated_heatmap.gif", animation = animated_plot)
 ####
-
-## print a binned plot
-print(create_binned_heatmaps(optimized, 9))
-
-## generate a range of errors against params
-ggplot(optimized, aes(x = A,
-                      y = log(error),
-                      color = B)) +
-  geom_col() + guides(color = "none")
-

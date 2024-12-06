@@ -1,8 +1,5 @@
 #include "util-harness.h"
 
-#define NUM_FLOATS 131072 // Number of floats to process (131072 is good)
-#define MAGIC_CONSTANT_DRAWS 32768 // number of integer constant samples per float
-
 typedef struct {
     float input;
     float system;
