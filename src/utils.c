@@ -1,5 +1,56 @@
 #include "util-harness.h"
 
+typedef struct {
+    float reference;
+    float initial_approx;
+    float after_one;
+    float output;
+    unsigned int NR_iters;
+    bool invalid_float_reached;
+} GeneralizedHarness;
+
+GeneralizedHarness generalized_rsqrt(float x, int NRmax, uint32_t magic, float tol, bool track_after_one) {
+    GeneralizedHarness result;
+
+    // Compute a reference inverse square root
+    result.reference = 1.0f / sqrtf(x);
+
+    // Track if we reach a state which won't plot well
+    result.invalid_float_reached = false;
+
+    // The input is given two simultaneous representations:
+    union { float f; uint32_t u; } y = {x};
+
+    // Manipulate the bitfield as an integer and restore the bits in the exponent
+    y.u = magic - (y.u >> 1);
+
+    // Extract the floating point representation
+    result.initial_approx = y.f;
+    result.after_one = NAN; // Initialize as NAN
+
+    // Perform Newton-Raphson iterations
+    int iters = 0;
+    while (iters < NRmax) {
+        y.f = y.f * (1.5f - 0.5f * x * y.f * y.f);
+        iters++;
+        if (track_after_one && iters == 1) {
+            result.after_one = y.f;
+        }
+        if (fabs(y.f - result.reference) < tol) {
+            break;
+        }
+    }
+    result.output = y.f;
+    result.NR_iters = iters;
+
+    // Check for invalid floats
+    if (!isnormal(result.initial_approx) || !isnormal(result.output) || (track_after_one && !isnormal(result.after_one))) {
+        result.invalid_float_reached = true;
+    }
+
+    return result;
+}
+
 // Absolute difference of unisgned integers
 // See https://stackoverflow.com/q/77337671
 uint32_t abs_uint_diff(uint32_t a, uint32_t b) {

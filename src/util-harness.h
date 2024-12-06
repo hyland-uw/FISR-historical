@@ -28,7 +28,6 @@
 // most guesses which converge do so before 95 iterations
 #define MAX_NR 95
 
-
 // For selection of magic constant over many floats
 #define NUM_FLOATS 131072 // Number of floats to process (131072 is good)
 #define MAGIC_CONSTANT_DRAWS 32768 // number of integer constant samples per float
@@ -41,13 +40,12 @@
 #define CHUNK_SIZE 1000
 
 // for sampling halfone/halfthree
-//
 #define GRID_SIZE 10
 #define GRID_STEP 0.001f
 
-// Utility function prototpes which we want to define elsewhere
-// These should (should!) all be un utils.c
-float uniformRange (float min, float max);
+// Utility function prototypes which we want to define elsewhere
+// These should (should!) all be in utils.c
+float uniformRange(float min, float max);
 float reciprocalRange(float min, float max);
 float logStratifiedSampler(float min, float max);
 uint32_t sample_integer_range(uint32_t min, uint32_t max);
@@ -61,13 +59,23 @@ uint32_t extract_top10_fraction(float input);
 // Harness to capture information for visualization
 // Placing the definition here seems to allow me to return an object struct
 // though I am not sure why
+typedef struct {
+    float reference;
+    float initial_approx;
+    float after_one;
+    float output;
+    unsigned int NR_iters;
+    bool invalid_float_reached;
+} GeneralizedHarness;
+
+GeneralizedHarness generalized_rsqrt(float x, int NRmax, uint32_t magic, float tol, bool track_after_one);
+
 typedef struct deconHarness {
     float input, reference, after_one, initial_approx;
     int NR_iters;
     bool invalid_float_reached;
 } deconHarness;
 deconHarness decon_rsqrt(float x, int NRmax, uint32_t magic, float tol);
-
 
 typedef struct narrowHarness {
     float input, reference, output, initial_approx;
@@ -87,7 +95,6 @@ float MorozISR(float x, int NR);
 float gridISR(float x, int NR);
 float NaiveISR_x(float x, int NR);
 float NaiveISR_1_over_x(float x, int NR);
-
 
 typedef struct {
     const char *name;
