@@ -1,5 +1,8 @@
 #include "util-harness.h"
 
+#define INTEGER_SAMPLES_PER_SLICE 2048 // number of integers to sample for single float search
+#define INTEGER_SELECTIONS 256 // winnow best performers
+
 // Structure to hold the error and magic number for each approximation
 struct Result {
     float error;
