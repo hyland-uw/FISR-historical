@@ -54,7 +54,6 @@ float random_float_with_exponent(uint32_t exponent);
 uint32_t exp_extract(float input);
 uint32_t abs_uint_diff(uint32_t a, uint32_t b);
 float min_max_float_with_exponent(int exponent, bool is_max);
-uint32_t extract_top10_fraction(float input);
 
 // Harness to capture information for visualization
 // Placing the definition here seems to allow me to return an object struct

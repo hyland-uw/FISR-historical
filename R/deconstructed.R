@@ -1,8 +1,4 @@
-library(scales)
-library(ggplot2)
-library(tidyr)
-library(dplyr)
-library(stringr)
+source("utils.R")
 
 deconstructed <- read.csv("../data/deconstructed.csv")
 

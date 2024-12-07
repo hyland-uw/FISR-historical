@@ -9,7 +9,7 @@ BIN_DIR = bin
 DATA_DIR = data
 
 # List of source files
-SOURCES = enumerated.c deconstructed.c approximated.c sliced.c optimized.c extracted.c narrowed.c
+SOURCES = enumerated.c deconstructed.c approximated.c sliced.c optimized.c narrowed.c
 
 # Utility file to be compiled with each source
 UTILS = utils.c

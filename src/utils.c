@@ -1,14 +1,5 @@
 #include "util-harness.h"
 
-typedef struct {
-    float reference;
-    float initial_approx;
-    float after_one;
-    float output;
-    unsigned int NR_iters;
-    bool invalid_float_reached;
-} GeneralizedHarness;
-
 GeneralizedHarness generalized_rsqrt(float x, int NRmax, uint32_t magic, float tol, bool track_after_one) {
     GeneralizedHarness result;
 
@@ -154,20 +145,6 @@ uint32_t exp_extract(float input) {
 
     return exponent;
 }
-
-uint32_t extract_top10_fraction(float input) {
-    union {
-        float f;
-        uint32_t i;
-    } u;
-    u.f = input;
-
-    // Extract the top half of the fraction bits
-    uint32_t top10_fraction = (u.i >> 13) & 0x3FF;
-
-    return top10_fraction;
-}
-
 
 // Given a specific exponent, sample within the fraction range
 float random_float_with_exponent(uint32_t exponent) {

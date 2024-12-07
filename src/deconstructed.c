@@ -42,7 +42,6 @@ typedef struct {
     float initial_approx;
     float after_one;
     unsigned int NR_iters;
-    uint32_t partial_fraction;
     uint32_t magic;
 } SampleResult;
 
@@ -76,7 +75,6 @@ void sample_decon_rsqrt(int draws, int NRmax, float min, float max, float tol) {
                     .initial_approx = result.initial_approx,
                     .after_one = result.after_one,
                     .NR_iters = result.NR_iters,
-                    .partial_fraction = extract_top10_fraction(x),
                     .magic = magic
                 };
                 local_results[local_valid_results++] = sample;
@@ -95,15 +93,14 @@ void sample_decon_rsqrt(int draws, int NRmax, float min, float max, float tol) {
     }
 
     // Print results
-    printf("input,reference,initial,after_one,iters,partial_fraction,magic\n");
+    printf("input,reference,initial,after_one,iters,magic\n");
     for (int i = 0; i < valid_results; i++) {
-        printf("%f,%f,%f,%f,%u,%d,0x%08X\n",
+        printf("%f,%f,%f,%f,%u,0x%08X\n",
                results[i].input,
                results[i].reference,
                results[i].initial_approx,
                results[i].after_one,
                results[i].NR_iters,
-               results[i].partial_fraction,
                results[i].magic);
     }
 

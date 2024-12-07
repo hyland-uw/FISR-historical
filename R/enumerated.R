@@ -1,3 +1,7 @@
+# enumerated.R
+
+source("utils.R")
+
 library(dplyr)
 library(purrr)
 
@@ -28,7 +32,6 @@ find_optimal_magic <- function(slice_data) {
   optimal_index <- which.min(results)
   list(minimum = unique_magics[optimal_index], objective = results[optimal_index])
 }
-
 
 ### load data
 enumerated <- read.csv("../data/enumerated.csv")

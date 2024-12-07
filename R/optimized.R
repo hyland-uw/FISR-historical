@@ -1,6 +1,4 @@
-library(ggplot2)
-library(dplyr)
-library(gganimate)
+source("utils.R")
 
 optimized <- read.csv("../data/optimized.csv")
 

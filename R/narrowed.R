@@ -1,3 +1,7 @@
+# narrowed.R
+
+source("utils.R")
+
 narrowed <- read.csv("../data/narrowed.csv")
 
 narrowed <- narrowed %>%

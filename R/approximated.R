@@ -1,4 +1,4 @@
-library(tidyr)
+source("utils.R")
 
 approximated <- read.csv("../data/approximated.csv")
 ## reference is generated here and not in C

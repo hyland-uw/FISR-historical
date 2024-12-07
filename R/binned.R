@@ -1,9 +1,4 @@
-library(tidyr)
-library(lpSolve)
-library(purrr)
-
-## use kable(binned, format = "simple")
-## from library(knitr)
+source("utils.R")
 
 binned <- read.csv("../data/binned.csv")
 
@@ -257,7 +252,7 @@ plot_multiple_n <- function(binned, n_values = unique(binned$N)) {
     # Vertical segments at range breaks
     geom_segment(data = segments_v,
                  aes(x = x, xend = x,
-                     y = y_start, yend = y_end),
+                     y = y_start, y_end = y_end),
                  linetype = "dotted",
                  color = "black",
                  linewidth = 0.25,
