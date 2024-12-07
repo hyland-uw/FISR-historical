@@ -58,3 +58,31 @@ find_optimal_magic <- function(slice_data) {
   optimal_index <- which.min(results)
   list(minimum = unique_magics[optimal_index], objective = results[optimal_index])
 }
+
+## more compact function for annotation
+mc_annotate <- function(magic_value, label,
+                        color, x_start = -0.035, x_end = 0.036,
+                        text_size = 8) {
+  list(
+    annotate("segment",
+             x = x_start, xend = x_end,
+             y = magic_value, yend = magic_value, 
+             color = color, linetype = 2, linewidth = 1.5),
+    annotate("point", x = x_end, y = magic_value, color = color, size = 3),
+    annotate("text", x = x_end + 0.002, y = magic_value, label = label, 
+             hjust = -0.05, vjust = 0.5, color = color, size = text_size)
+  )
+}
+
+## force specific plotting order so we can plot low iterations "on top of"
+## higher iterations so overplotting doesn't cover the optimal range
+# required there to be a variable "iters"
+# which we can walk over
+create_geom_points <- function(data, iter_range, shape, size, alpha = 1) {
+  lapply(iter_range, function(i) {
+    geom_point(data = data[data$iters == i, ],
+               shape = shape,
+               size = size,
+               alpha = alpha)
+  })
+}

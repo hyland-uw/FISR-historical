@@ -1,5 +1,15 @@
 source("utils.R")
 
+## from https://stackoverflow.com/a/23574127/1188479
+## descending color scale
+as.numeric(max(levels(deconstructed$iters))) -> iter_l
+colorRampPalette(c("dodgerblue2","red"))(iter_l) -> iter_colors
+
+## creates a quasi-divergent color scale which 
+## privileges one iteration.
+iter_rank_hue <- c("lightblue", colorRampPalette(c("white", "orange1", "red"))(7))
+
+
 deconstructed <- read.csv("../data/deconstructed.csv") %>%
   # Subset the dataframe to the divisible limit
   # keeps ntile bins equal size
@@ -29,42 +39,7 @@ widened <- read.csv("../data/deconstructed-wide.csv") %>%
                          breaks = c(0, 1, 2, 3, 4, 24, 60, 94),
                          labels = c("1", "2", "3", "4", "5-24", "25-60", "61-94")))
 
-## more compact function for annotation
-mc_annotate <- function(magic_value, label,
-                        color, x_start = -0.035, x_end = 0.036,
-                        text_size = 8) {
-  list(
-    annotate("segment",
-             x = x_start, xend = x_end,
-             y = magic_value, yend = magic_value, 
-             color = color, linetype = 2, linewidth = 1.5),
-    annotate("point", x = x_end, y = magic_value, color = color, size = 3),
-    annotate("text", x = x_end + 0.002, y = magic_value, label = label, 
-             hjust = -0.05, vjust = 0.5, color = color, size = text_size)
-  )
-}
 
-## force specific plotting order so we can plot low iterations "on top of"
-## higher iterations so overplotting doesn't cover the optimal range
-# required there to be a variable "iters"
-# which we can walk over
-create_geom_points <- function(data, iter_range, shape, size, alpha = 1) {
-  lapply(iter_range, function(i) {
-    geom_point(data = data[data$iters == i, ],
-               shape = shape,
-               size = size,
-               alpha = alpha)
-  })
-}
-
-## from https://stackoverflow.com/a/23574127/1188479
-## descending color scale
-as.numeric(max(levels(deconstructed$iters))) -> iter_l
-colorRampPalette(c("dodgerblue2","red"))(iter_l) -> iter_colors
-
-## creates a quasi-divergent color scale which 
-## privileges one iteration.
-iter_rank_hue <- c("lightblue", colorRampPalette(c("white", "orange1", "red"))(7))
 
 ### plots here
 
