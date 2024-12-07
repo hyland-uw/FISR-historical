@@ -5,13 +5,13 @@ source("utils.R")
 narrowed <- read.csv("../data/narrowed.csv")
 
 narrowed <- narrowed %>%
-  mutate(iters = factor(iters, levels = 1:max(iters), labels = 1:max(iters)))
+  mutate(iters = factor(iters,
+                        levels = 1:max(iters),
+                        labels = 1:max(iters)),
+         magic_rank = ntile(magic, 8),
+         input_rank = ntile(narrowed$input, 10))
 
-narrowed$magic_rank <- ntile(narrowed$magic, 8)
-narrowed$input_rank <- ntile(narrowed$input, 10)
 
-
-# Main plot
 # Main plot
 narrowed %>% 
   ggplot(aes(x = (initial - reference) / reference, y = magic, color = factor(iters))) +

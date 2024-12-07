@@ -4,7 +4,7 @@ typedef struct {
     float input;
     float system;
     float NR0;
-    float final;
+    float after_one;
     uint32_t magic;
 } Result;
 
@@ -48,19 +48,19 @@ void full_float_search(int float_slices, int int_samples) {
                 .input = input,
                 .system = system,
                 .NR0 = best_NR0,
-                .final = best_final,
+                .after_one = best_final,
                 .magic = best_magic
             };
         }
     }
 
-    printf("input,reference,initial,final,magic\n");
+    printf("input,reference,initial,after_one,magic\n");
     for (int i = 0; i < float_slices; i++) {
         printf("%e,%e,%e,%e,0x%08X\n",
                results[i].input,
                results[i].system,
                results[i].NR0,
-               results[i].final,
+               results[i].after_one,
                results[i].magic);
     }
 

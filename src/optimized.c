@@ -50,13 +50,11 @@ void compute_result_block(float input, ResultBlock* block) {
 
 void print_result_block(const ResultBlock* block) {
     for (int i = 0; i < GRID_SIZE*GRID_SIZE; i++) {
-        float constraint_deviation = block->results[i].params.A * (block->results[i].params.B - 1.0f) - 1.0f;
-        printf("%e,%e,%e,%e,%e\n",
+        printf("%e,%e,%e,%e\n",
                block->results[i].input,
                block->results[i].params.A,
                block->results[i].params.B,
-               block->results[i].error,
-               constraint_deviation);
+               block->results[i].error);
     }
     printf("\n");
 }
@@ -82,7 +80,7 @@ void compute_all_result_blocks(float* inputs, ResultBlock* result_blocks, int co
 }
 
 void print_all_result_blocks(ResultBlock* result_blocks, int count) {
-    printf("input,A,B,error,constraint_deviation\n");
+    printf("input,A,B,error\n");
     for (int j = 0; j < count; j++) {
         print_result_block(&result_blocks[j]);
     }

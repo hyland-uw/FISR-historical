@@ -22,7 +22,6 @@ deconstructed <- deconstructed %>%
   mutate(
     input_rank = ntile(input, 128),
     magic_rank = ntile(magic, 128),
-    frac_rank = ntile(partial_fraction, 128),
     initial_rank = ntile(initial - reference, 128),
     after_rank = ntile(after_one - reference, 128)
   )
@@ -84,24 +83,6 @@ iter_colors <- colorRampPalette(c("dodgerblue2", "red"))(as.numeric(max(levels(d
 ## creates a quasi-divergent color scale which 
 ## privileges one iteration.
 iter_rank_hue <- c("lightblue", colorRampPalette(c("white", "orange1", "red"))(7))
-
-## from https://stackoverflow.com/a/9568659/1188479
-## useful for false categorical coloring
-c25 <- c(
-  "dodgerblue2", "#E31A1C", # red
-  "green4",
-  "#6A3D9A", # purple
-  "#FF7F00", # orange
-  "black", "gold1",
-  "skyblue2", "#FB9A99", # lt pink
-  "palegreen2",
-  "#CAB2D6", # lt purple
-  "#FDBF6F", # lt orange
-  "gray70", "khaki2",
-  "maroon", "orchid1", "deeppink1", "blue1", "steelblue4",
-  "darkturquoise", "green1", "yellow4", "yellow3",
-  "darkorange4", "brown"
-)
 
 ### plots here
 
@@ -189,15 +170,6 @@ ggplot(deconstructed,
   geom_point(shape = ".") +
   guides(color = "none") +
   coord_polar(theta = "x") +
-  theme_void()
-
-# wings
-ggplot(deconstructed,
-       aes(x = initial_rank,
-           y = after_rank,
-           fill = partial_fraction)) +
-  geom_tile() +
-  guides(fill = "none") +
   theme_void()
 
 #### Combined plot of a wide integer sample and a narrow sample around the 
