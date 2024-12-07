@@ -15,7 +15,7 @@ library(knitr)
 
 ## from https://stackoverflow.com/a/9568659/1188479
 ## useful for false categorical coloring
-false-categorical-25 <- c(
+false_categorical_25 <- c(
   "dodgerblue2", "#E31A1C", # red
   "green4",
   "#6A3D9A", # purple

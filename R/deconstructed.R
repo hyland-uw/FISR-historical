@@ -1,4 +1,3 @@
-library(dplyr)
 source("utils.R")
 
 deconstructed <- read.csv("../data/deconstructed.csv") %>%
@@ -60,9 +59,8 @@ create_geom_points <- function(data, iter_range, shape, size, alpha = 1) {
 
 ## from https://stackoverflow.com/a/23574127/1188479
 ## descending color scale
-deconstructed %>%
-  colorRampPalette(c("dodgerblue2",
-                     "red"))(as.numeric(max(levels(iters)))) -> iter_colors
+as.numeric(max(levels(deconstructed$iters))) -> iter_l
+colorRampPalette(c("dodgerblue2","red"))(iter_l) -> iter_colors
 
 ## creates a quasi-divergent color scale which 
 ## privileges one iteration.
@@ -75,10 +73,9 @@ deconstructed %>%
   ggplot(aes(x = input,
             y = initial - reference,
             color = iters)) +
-    create_geom_points(as.numeric(max(levels(iters))):1, 16, 2, 0.95) +
+    create_geom_points(deconstructed, iter_l:1, 16, 2, 0.95) +
     guides(alpha = "none") +
-    scale_color_manual(values = setNames(iter_colors,
-                                         1:as.numeric(max(levels(iters)))),
+    scale_color_manual(values = setNames(iter_colors, 1:iter_l),
                       breaks = 1:6)  +
     labs(color = "Iteration\nCount",
         title = "Rate of convergence is not symmetric about first guess errors") +
