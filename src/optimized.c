@@ -63,8 +63,8 @@ void print_result_block(const ResultBlock* block) {
 
 void initialize_grids(float A_center, float B_center, float half_extent) {
     for (int i = 0; i < GRID_SIZE; i++) {
-        A_grid[i] = A_center + ((float)rand() / RAND_MAX - 0.5f) * half_extent;
-        B_grid[i] = B_center + ((float)rand() / RAND_MAX - 0.5f) * half_extent;
+        A_grid[i] = A_center + ((float)rand() / (float)RAND_MAX - 0.5f) * half_extent;
+        B_grid[i] = B_center + ((float)rand() / (float)RAND_MAX - 0.5f) * half_extent;
     }
 }
 

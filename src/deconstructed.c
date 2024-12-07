@@ -22,18 +22,8 @@ Unions are used to avoid type punning, so this code should work at all
 levels of compiler optimization.
 */
 
-deconHarness decon_rsqrt(float x, int NRmax, uint32_t magic, float tol) {
-    GeneralizedHarness result = generalized_rsqrt(x, NRmax, magic, tol, true);
-
-    deconHarness harness_result;
-    harness_result.input = x;
-    harness_result.reference = result.reference;
-    harness_result.initial_approx = result.initial_approx;
-    harness_result.after_one = result.after_one;
-    harness_result.NR_iters = result.NR_iters;
-    harness_result.invalid_float_reached = result.invalid_float_reached;
-
-    return harness_result;
+GeneralizedHarness decon_rsqrt(float x, int NRmax, uint32_t magic, float tol) {
+    return generalized_rsqrt(x, NRmax, magic, tol, true);
 }
 
 typedef struct {
@@ -41,6 +31,7 @@ typedef struct {
     float reference;
     float initial_approx;
     float after_one;
+    float output;
     unsigned int NR_iters;
     uint32_t magic;
 } SampleResult;
@@ -66,7 +57,7 @@ void sample_decon_rsqrt(int draws, int NRmax, float min, float max, float tol) {
             // poor fits
             uint32_t magic = sample_integer_range(INT_DRAW_MIN, INT_DRAW_MAX);
 
-            deconHarness result = decon_rsqrt(x, NRmax, magic, tol);
+            GeneralizedHarness result = decon_rsqrt(x, NRmax, magic, tol);
 
             if (!result.invalid_float_reached) {
                 SampleResult sample = {
@@ -74,6 +65,7 @@ void sample_decon_rsqrt(int draws, int NRmax, float min, float max, float tol) {
                     .reference = result.reference,
                     .initial_approx = result.initial_approx,
                     .after_one = result.after_one,
+                    .output = result.output,
                     .NR_iters = result.NR_iters,
                     .magic = magic
                 };
@@ -93,13 +85,14 @@ void sample_decon_rsqrt(int draws, int NRmax, float min, float max, float tol) {
     }
 
     // Print results
-    printf("input,reference,initial,after_one,iters,magic\n");
+    printf("input,reference,initial,after_one,final,iters,magic\n");
     for (int i = 0; i < valid_results; i++) {
-        printf("%f,%f,%f,%f,%u,0x%08X\n",
+        printf("%f,%f,%f,%f,%f,%u,0x%08X\n",
                results[i].input,
                results[i].reference,
                results[i].initial_approx,
                results[i].after_one,
+               results[i].output,
                results[i].NR_iters,
                results[i].magic);
     }

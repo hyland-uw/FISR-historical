@@ -69,20 +69,6 @@ typedef struct {
 
 GeneralizedHarness generalized_rsqrt(float x, int NRmax, uint32_t magic, float tol, bool track_after_one);
 
-typedef struct deconHarness {
-    float input, reference, after_one, initial_approx;
-    int NR_iters;
-    bool invalid_float_reached;
-} deconHarness;
-deconHarness decon_rsqrt(float x, int NRmax, uint32_t magic, float tol);
-
-typedef struct narrowHarness {
-    float input, reference, output, initial_approx;
-    int NR_iters;
-    bool invalid_float_reached;
-} narrowHarness;
-narrowHarness narrow_decon_rsqrt(float x, uint32_t magic, float tol);
-
 // Sampling function prototype for draws of decon_rsqrt()
 void sample_decon_rsqrt(int draws, int NRmax, float min, float max, float tol);
 
