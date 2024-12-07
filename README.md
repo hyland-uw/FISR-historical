@@ -89,7 +89,7 @@ This harness allows us to deconstruct the working and output of an idealized FIS
 | 0.181007 | 2.350457 | 0.591144 | 2.350457 | 7 | 1597465647 |
 | 0.629445 | 1.260437 | 0.655565 | 1.260436 | 5 | 1597467647 |
 
-![Zooming in on three similar constants](/plots/narrowed_error.png)
+![Zooming in on a constant search](/plots/combined_decon.png)
 
 This format allows us to explore the space of possible choices for magic constants in a more focused manner.
 
