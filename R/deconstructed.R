@@ -1,61 +1,43 @@
+library(dplyr)
 source("utils.R")
 
-deconstructed <- read.csv("../data/deconstructed.csv")
-
-# Subset the dataframe to the divisible limit
-# keeps ntile bins equal size
-divisible_limit <- nrow(deconstructed) - (nrow(deconstructed) %% 2048)
-deconstructed <- deconstructed[sample(divisible_limit), ]
-rm(divisible_limit)
-
-## iterations over 6 have a markedly different structure 
-## than 1-6. Why they converge might be different
-## dropping these from the plot is a temporary measure
-deconstructed <- deconstructed %>%
+deconstructed <- read.csv("../data/deconstructed.csv") %>%
+  # Subset the dataframe to the divisible limit
+  # keeps ntile bins equal size
+  { .[sample(nrow(.) - (nrow(.) %% 2048)), ] } %>%
+  # Filter and mutate
   filter(iters <= 6) %>%
-  mutate(iters = factor(iters, levels = 1:max(iters), labels = 1:max(iters)))
-
-### rank input and magic values for easier binning
-## note that initial and after rank
-## are determined based on their distance from the reference output
-deconstructed <- deconstructed %>%
+  mutate(iters = factor(iters, levels = 1:max(iters), labels = 1:max(iters))) %>%
   mutate(
     input_rank = ntile(input, 128),
     magic_rank = ntile(magic, 128),
     initial_rank = ntile(initial - reference, 128),
-    after_rank = ntile(after_one - reference, 128)
+    after_rank = ntile(after_one - reference, 128),
+    iter_rank = cut(as.numeric(iters), 
+                    breaks = c(0, 1, 2, 3, 4, 24, 60, 94),
+                    labels = c("1", "2", "3", "4", "5-24", "25-60", "61-94"))
   )
 
-## iter rank is defined specifically to 
-## track small differences w/ low numbers
-## of iteration and bin with larger ranges
-deconstructed$iter_rank <- cut(as.numeric(deconstructed$iters), 
-                         breaks = c(0, 1, 2, 3, 4, 24, 60, 94),
-                         labels = c("1", "2", "3", "4", "5-24", "25-60", "61-94"))
 #### wide plot data loading
-widened <- read.csv("../data/deconstructed-wide.csv")
-
-# Subset the dataframe to the divisible limit
-# keeps ntile bins equal size
-divisible_limit <- nrow(widened) - (nrow(widened) %% 2048)
-widened <- widened[sample(divisible_limit), ]
-rm(divisible_limit)
-
-## We want to keep all the iterations for the wide plot
-widened <- widened %>%
+widened <- read.csv("../data/deconstructed-wide.csv") %>%
+  # Subset the dataframe to the divisible limit
+  # keeps ntile bins equal size
+  { .[sample(nrow(.) - (nrow(.) %% 2048)), ] } %>%
+  # Filter and mutate
   filter(iters <= 94) %>%
-  mutate(iters = factor(iters, levels = 1:max(iters), labels = 1:max(iters)))
-
-## should be identical to the breakdown for deconstructed
-## so that we can plot them with the same legend later
-widened$iter_rank <- cut(as.numeric(widened$iters), 
+  mutate(iters = factor(iters, levels = 1:max(iters), labels = 1:max(iters))) %>%
+  mutate(iter_rank = cut(as.numeric(iters), 
                          breaks = c(0, 1, 2, 3, 4, 24, 60, 94),
-                         labels = c("1", "2", "3", "4", "5-24", "25-60", "61-94"))
+                         labels = c("1", "2", "3", "4", "5-24", "25-60", "61-94")))
 
 ## more compact function for annotation
-mc_annotate <- function(magic_value, label, color, x_start = -0.035, x_end = 0.036, text_size = 8) {
+mc_annotate <- function(magic_value, label,
+                        color, x_start = -0.035, x_end = 0.036,
+                        text_size = 8) {
   list(
-    annotate("segment", x = x_start, xend = x_end, y = magic_value, yend = magic_value, 
+    annotate("segment",
+             x = x_start, xend = x_end,
+             y = magic_value, yend = magic_value, 
              color = color, linetype = 2, linewidth = 1.5),
     annotate("point", x = x_end, y = magic_value, color = color, size = 3),
     annotate("text", x = x_end + 0.002, y = magic_value, label = label, 
@@ -78,7 +60,9 @@ create_geom_points <- function(data, iter_range, shape, size, alpha = 1) {
 
 ## from https://stackoverflow.com/a/23574127/1188479
 ## descending color scale
-iter_colors <- colorRampPalette(c("dodgerblue2", "red"))(as.numeric(max(levels(deconstructed$iters))))
+deconstructed %>%
+  colorRampPalette(c("dodgerblue2",
+                     "red"))(as.numeric(max(levels(iters)))) -> iter_colors
 
 ## creates a quasi-divergent color scale which 
 ## privileges one iteration.
@@ -87,18 +71,19 @@ iter_rank_hue <- c("lightblue", colorRampPalette(c("white", "orange1", "red"))(7
 ### plots here
 
 ## Plot of errors and rate of convergence against input
-ggplot(deconstructed,
-       aes(x = input,
-           y = initial - reference,
-           color = iters)) +
-  create_geom_points(deconstructed, as.numeric(max(levels(deconstructed$iters))):1, 16, 2, 0.95) +
-  guides(alpha = "none") +
-  scale_color_manual(values = setNames(iter_colors, 1:as.numeric(max(levels(deconstructed$iters)))),
-                     breaks = 1:6)  +
-  labs(color = "Iteration\nCount",
-       title = "Rate of convergence is not symmetric about first guess errors") +
-  ylab("Error before NR Iteration") +
-  xlab("Input float")
+deconstructed %>%
+  ggplot(aes(x = input,
+            y = initial - reference,
+            color = iters)) +
+    create_geom_points(as.numeric(max(levels(iters))):1, 16, 2, 0.95) +
+    guides(alpha = "none") +
+    scale_color_manual(values = setNames(iter_colors,
+                                         1:as.numeric(max(levels(iters)))),
+                      breaks = 1:6)  +
+    labs(color = "Iteration\nCount",
+        title = "Rate of convergence is not symmetric about first guess errors") +
+    ylab("Error before NR Iteration") +
+    xlab("Input float")
 
 ## good plot to show what ranges are probably optimal for the constant
 ## above 4 iterations, we see different behavior for large
@@ -107,8 +92,7 @@ ggplot(deconstructed,
 deconstructed %>%
   filter(as.numeric(iters) <= 4) %>%
   group_by(iters) %>%
-  summarize(min_magic = min(magic),
-            max_magic = max(magic)) %>%
+  summarize(min_magic = min(magic), max_magic = max(magic)) %>%
   ggplot(aes(x = iters, ymin = min_magic, ymax = max_magic)) +
   scale_y_continuous(labels = function(x) sprintf("0x%X", as.integer(x))) +
   geom_errorbar(width = 0.5) +
@@ -148,7 +132,7 @@ ggplot(deconstructed,
   labs(x = "Relative error of first guess",
        y = "Improvement from one Newton-Raphson step",
        color = "Iterations\nto convergence",
-       title = "Plotted against relative improvement, the optimal region is more clearly visible")
+       title = "Plotted against relative improvement, optimal region is visible")
 
 ## artistic plots of the range of outcomes
 
@@ -179,7 +163,7 @@ ggplot(deconstructed,
 
 # plot to be subset
 
-subset_plot <- deconstructed %>% 
+subset_plot <- deconstructed %>%
   filter(iters %in% levels(iters)[1:5]) %>%
   ggplot(aes(x = (initial - reference) / reference, y = magic, color = iters)) +
   geom_point(shape = 16, size = 0.65, alpha = 0.95) +
@@ -208,7 +192,7 @@ subset_plot <- deconstructed %>%
              color = "blue", alpha = 0.6, lty = 4, linewidth = 0.2)
 
 ### for this plot, y ranges from 1150202431 to 1601995043
-widened %>% 
+widened %>%
   ggplot(aes(x = (initial - reference) / reference,
              y = magic,
              color = iter_rank)) +
@@ -218,7 +202,7 @@ widened %>%
              show.legend = TRUE) +
   xlab("Relative error") + ylab("Restoring constant (in billions)") + 
   labs(color = "Iterations\nto converge",
-       title = "Extended to only 10% of the available integer space,\nthe region where the approximation is optimal is invisible.",
+       title = "The region where the approximation is optimal is tiny.",
        fill = "Range of\noptimal integers") +
   scale_y_continuous(labels = function(x) sprintf("%.1f", x / 1e9),
                      limits = c(1.3e9 - 1, NA)) +

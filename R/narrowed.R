@@ -14,7 +14,9 @@ narrowed <- narrowed %>%
 
 # Main plot
 narrowed %>% 
-  ggplot(aes(x = (initial - reference) / reference, y = magic, color = factor(iters))) +
+  ggplot(aes(x = (initial - reference) / reference,
+             y = magic,
+             color = factor(iters))) +
   geom_point(shape = 16, alpha = 0.95) +
   xlab("Relative Error") + ylab("Magic Constant") + 
   labs(color = "Iterations\nto converge",

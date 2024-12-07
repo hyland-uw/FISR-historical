@@ -47,7 +47,8 @@ void sample_decon_rsqrt(int draws, int NRmax, float min, float max, float tol) {
     #pragma omp parallel
     {
         // Thread-local storage for results
-        SampleResult* local_results = malloc(sizeof(SampleResult) * draws / omp_get_num_threads());
+        int threads = omp_get_num_threads();
+        SampleResult* local_results = malloc(sizeof(SampleResult) * draws / threads);
         int local_valid_results = 0;
 
         #pragma omp for

@@ -35,7 +35,10 @@ approximated %>%
         "Kahan" = "orange"),
       labels = blinncomp_labels) +
     scale_linetype_manual(
-      values = c("Blinn" = "dashed", "QuakeIII" = "solid", "Moroz" = "solid", "Kahan" = "solid"),
+      values = c("Blinn" = "dashed",
+                 "QuakeIII" = "solid",
+                 "Moroz" = "solid",
+                 "Kahan" = "solid"),
       labels = blinncomp_labels
     ) +
     guides(color = guide_legend(override.aes = list(linewidth = 1.5))) +
@@ -56,8 +59,10 @@ approximated %>%
   filter(method %in% c("Naive_1_over_x", "Naive_x")) %>%
   ggplot() + 
   geom_ribbon(aes(x = input,
-                  ymin = pmin((guess - reference) / reference, (after_one - reference) / reference),
-                  ymax = pmax((guess - reference) / reference, (after_one - reference) / reference),
+                  ymin = pmin((guess - reference) / reference,
+                              (after_one - reference) / reference),
+                  ymax = pmax((guess - reference) / reference,
+                              (after_one - reference) / reference),
                   fill = method),
               alpha = 0.3) +
   geom_line(aes(x = input,
@@ -156,7 +161,7 @@ nrplot <- function(df = approximated, approx = "QuakeIII") {
                  show.legend = FALSE) +
     xlim(0.25, 2) + 
     labs(y = "Relative error",
-         title = "For good guesses, an iteration of Newton-Raphson markedly reduces error",
+         title = "One iteration of Newton-Raphson markedly reduces error",
          x = "Input") +
     facet_wrap(~ method) -> output
   return(output)
