@@ -66,19 +66,18 @@ float MorozISR(float x, int NR) {
     return y.f;
 }
 
-// See https://web.archive.org/web/20220826232306/http://rrrola.wz.cz/inv_sqrt.html
+// See http://rrrola.wz.cz/inv_sqrt.html
 // Optimal Newton-Raphson / magic constant combination
 // found via brute force search of the 32-bit integer space
 // Fails to converge for iterations >= 2
-// see https://gist.github.com/Protonk/a96a317dcc6a381b834f36a1abd275ed
+// see https://math.stackexchange.com/q/5007675/1025433
 float gridISR(float x, int NR) {
     int magic = 0x5F1FFFF9;
     union { float f; uint32_t u; } y = {x};
     y.u = magic - (y.u >> 1);
     while (NR > 0) {
-        // Turns out that while being locally optimal,
-        // this structure gets the algorithm "stuck"
-        // on guesses which don't result in changes in output.
+        // values which will converge for >1 iterations:
+        // A = 0.712, B = 2.4045
         y.f = 0.703952253f * y.f * (2.38924456f - x * y.f * y.f);
         NR--;
     }
