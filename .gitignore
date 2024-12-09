@@ -4,4 +4,4 @@
 src/fisr
 fisrvenv/*
 bin/*
-.vscode/settings.json
+.vscode/*
