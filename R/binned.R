@@ -1,6 +1,95 @@
 source("utils.R")
 
-binned <- read.csv("../data/binned.csv")
+# Function to create logarithmically spaced bins
+create_log_bins <- function(start = 0.25, end = 1.0, n_bins) {
+  bins <- 2^(seq(log2(start), log2(end), length.out = n_bins + 1))
+  tibble(
+    bin_num = 1:n_bins,
+    min = bins[-length(bins)],
+    max = bins[-1]
+  )
+}
+
+# Function to sample floating-point values within a bin
+sample_floats <- function(min_val, max_val, n_samples) {
+  sampled_data <- frsr_sample(
+    n = n_samples,
+    x_min = min_val,
+    x_max = max_val,
+    keep_params = TRUE
+  )
+  sampled_data$input # Extract the sampled floating-point values
+}
+
+# Function to optimize magic constants for a given float
+optimize_magic_for_float <- function(float_value, magic_min, magic_max, n_samples) {
+  # Sample results for a single float value across multiple magic constants
+  results <- frsr_sample(
+    n = n_samples,
+    x_min = float_value,
+    x_max = NULL,
+    magic_min = magic_min,
+    magic_max = magic_max,
+    keep_params = TRUE
+  )
+  
+  # Summarize errors for the given float value
+  tibble(
+    magic = unique(results$magic),
+    avg_error = mean(results$error),
+    max_error = max(results$error)
+  )
+}
+
+# Function to optimize magic constants for all floats in a bin
+optimize_magic_for_bin <- function(floats, magic_min, magic_max, n_samples_per_magic) {
+  # Optimize for each float and combine results
+  map_dfr(floats, ~optimize_magic_for_float(.x, magic_min, magic_max, n_samples_per_magic)) %>%
+    group_by(magic) %>%
+    summarize(
+      avg_error = mean(avg_error),
+      max_error = max(max_error),
+      .groups = 'drop'
+    ) %>%
+    slice_min(max_error, n = 1) # Select the magic constant with minimum max_error
+}
+
+# Function to process a single bin
+process_bin <- function(min_val, max_val, n_floats, n_samples_per_magic, magic_min, magic_max) {
+  # Sample floating-point values within the bin
+  floats <- sample_floats(min_val, max_val, n_floats)
+  
+  # Optimize magic constants for sampled floats
+  optimal_magic <- optimize_magic_for_bin(floats, magic_min, magic_max, n_samples_per_magic)
+  
+  tibble(
+    Range_Min = min_val,
+    Range_Max = max_val,
+    Magic = sprintf("0x%08X", optimal_magic$magic),
+    Avg_Relative_Error = optimal_magic$avg_error,
+    Max_Relative_Error = optimal_magic$max_error
+  )
+}
+
+# Main function to generate the binned dataset
+generate_binned <- function(n_values, n_floats_per_bin = 10000, n_samples_per_magic = 2048,
+                            magic_min = 1596980000L, magic_max = 1598050000L) {
+  
+  map_dfr(n_values, function(n_bins) {
+    bins <- create_log_bins(0.25, 1.0, n_bins)
+    
+    map2_dfr(bins$min, bins$max,
+             ~process_bin(.x, .y, n_floats_per_bin, n_samples_per_magic,
+                          magic_min, magic_max)) %>%
+      mutate(N = n_bins)
+  }) %>%
+    select(N, Range_Min, Range_Max, Magic, Avg_Relative_Error, Max_Relative_Error)
+}
+
+# Generate the binned dataset with hierarchical sampling
+binned <- generate_binned(n_values = c(4, 8, 16), 
+                          n_floats_per_bin = 10000,
+                          n_samples_per_magic = 2048)
 
 ## useful for when we mix and match to optimize
 binned <- binned %>%
@@ -293,3 +382,4 @@ ggplot(aes(x = bins, y = error)) +
        y = "Normalized Error",
        title = "Optimal bucket selection error reduction slows after 24 bins") +
   scale_x_continuous(breaks = seq(4, 36, by = 4))
+

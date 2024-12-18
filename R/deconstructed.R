@@ -1,5 +1,73 @@
 source("utils.R")
 
+file_tolerance <- 2^-15
+file_NRmax <- 95
+
+## load narrower plot which contains optimal values
+deconstructed <- frsr_sample(n = 524288, NRmax = file_NRmax, tol = file_tolerance,
+                             magic_min = 1.5935e9, magic_max = 1601175552,
+                             keep_params = TRUE)
+
+prep_decon_df <- function(df) {
+  df %>%
+    # Subset the dataframe to the divisible limit
+    # keeps ntile bins equal size
+    { .[sample(nrow(.) - (nrow(.) %% 2048)), ] } %>%
+    # Filter to 1 less than file_NRmax to ignore 
+    # samples which don't ever converge
+    filter(iters <= (file_NRmax - 1)) %>%
+    mutate(reference = 1 / sqrt(input)) %>%
+    mutate(iters = factor(iters, levels = 1:max(iters), labels = 1:max(iters))) %>%
+    mutate(
+      input_rank = ntile(input, 128),
+      magic_rank = ntile(magic, 128),
+      initial_rank = ntile(initial - reference, 128),
+      after_rank = ntile(after_one - reference, 128),
+      iter_rank = cut(as.numeric(iters), 
+                      breaks = c(0, 1, 2, 3, 4, 24, 60, 94),
+                      labels = c("1", "2", "3", "4", "5-24", "25-60", "61-94")))
+}
+
+deconstructed <- prep_decon_df(deconstructed)
+
+widened <- frsr_sample(n = 262144, NRmax = file_NRmax, tol = file_tolerance,
+                       magic_min = 1.3e9, magic_max = 1.6025e9,
+                       keep_params = TRUE)
+widened <- prep_decon_df(widened)
+
+narrowed <- frsr_sample(n = 131072, NRmax = 2,
+                        # 0x5f37642f +/- 4000
+                        magic_min = 1597461647, magic_max = 1597469647,
+                        keep_params = TRUE)
+narrowed %>%
+  mutate(reference = 1 / sqrt(input)) -> narrowed
+  
+
+# Main plot
+narrowed %>% 
+  ggplot(aes(x = (initial - reference) / reference,
+             y = magic)) +
+  geom_point(shape = ".", alpha = 0.9) +
+  xlab("Relative Error") + ylab("Magic Constant") + 
+  labs(color = "Iterations\nto converge",
+       title = "Zooming in on three similar constants") +
+  scale_y_continuous(labels = function(x) sprintf("0x%X", as.integer(x)),
+                     limits = c(0x5f37642f - 3200,
+                                0x5F376D60)) +
+  ### Q3A is close to Lomont's revised so we raise it up
+  mc_annotate(0x5f3759df, "0x5f3759df", "blue",
+              x_end = 0.04) +
+  ### Lomont original
+  mc_annotate(0x5f37642f, "0x5f37642f", "red",
+              x_end = 0.043) +
+  ## Lomont revized
+  mc_annotate(0x5f375a86, "0x5f375a86", "orange") +
+  ## Moroz
+  mc_annotate(0x5F376908, "0x5F376908", "purple") +
+  xlim(-0.035, 0.08)
+
+
+
 ## from https://stackoverflow.com/a/23574127/1188479
 ## descending color scale
 as.numeric(max(levels(deconstructed$iters))) -> iter_l
@@ -9,35 +77,6 @@ colorRampPalette(c("dodgerblue2","red"))(iter_l) -> iter_colors
 ## privileges one iteration.
 iter_rank_hue <- c("lightblue", colorRampPalette(c("white", "orange1", "red"))(7))
 
-
-deconstructed <- read.csv("../data/deconstructed.csv") %>%
-  # Subset the dataframe to the divisible limit
-  # keeps ntile bins equal size
-  { .[sample(nrow(.) - (nrow(.) %% 2048)), ] } %>%
-  # Filter and mutate
-  filter(iters <= 6) %>%
-  mutate(iters = factor(iters, levels = 1:max(iters), labels = 1:max(iters))) %>%
-  mutate(
-    input_rank = ntile(input, 128),
-    magic_rank = ntile(magic, 128),
-    initial_rank = ntile(initial - reference, 128),
-    after_rank = ntile(after_one - reference, 128),
-    iter_rank = cut(as.numeric(iters), 
-                    breaks = c(0, 1, 2, 3, 4, 24, 60, 94),
-                    labels = c("1", "2", "3", "4", "5-24", "25-60", "61-94"))
-  )
-
-#### wide plot data loading
-widened <- read.csv("../data/deconstructed-wide.csv") %>%
-  # Subset the dataframe to the divisible limit
-  # keeps ntile bins equal size
-  { .[sample(nrow(.) - (nrow(.) %% 2048)), ] } %>%
-  # Filter and mutate
-  filter(iters <= 94) %>%
-  mutate(iters = factor(iters, levels = 1:max(iters), labels = 1:max(iters))) %>%
-  mutate(iter_rank = cut(as.numeric(iters), 
-                         breaks = c(0, 1, 2, 3, 4, 24, 60, 94),
-                         labels = c("1", "2", "3", "4", "5-24", "25-60", "61-94")))
 
 
 
@@ -87,8 +126,7 @@ ggplot(deconstructed,
   labs(title = "NR converges quadratically",
        x = "Relative error before Newton-Raphson",
        y = "Relative error after one iteration",
-       color = "Iterations\nuntil\neventual\nconvergence") + 
-  ylim(-0.5, NA)
+       color = "Iterations\nuntil\neventual\nconvergence")
 
 ## another plot of the relationship. 
 ## this can show the "kink" which is only barely visible

@@ -1,6 +1,33 @@
 source("utils.R")
 
-approximated <- read.csv("../data/approximated.csv")
+FLOAT_TOL <- 0.0004882812
+SLICES <- 16384
+
+float_vector <- boundedStratifiedSample(SLICES, 0.25, 2)
+
+Blinn <- bind_cols(frsr(x = float_vector, NRmax = 10,
+                     tol = FLOAT_TOL, magic = 0x5F400000,
+                     A = 1.47, B = 0.47,
+                     detail = TRUE, keep_params = TRUE),
+                   method = "Blinn")
+
+QuakeIII <- bind_cols(frsr(x = float_vector, NRmax = 10,
+                        tol = FLOAT_TOL, magic = 0x5F375A86,
+                        detail = TRUE, keep_params = TRUE),
+                      method = "QuakeIII")
+
+Moroz <- bind_cols(frsr(x = float_vector, NRmax = 10,
+                     tol = FLOAT_TOL, magic = 0x5F37ADD5,
+                     detail = TRUE, keep_params = TRUE),
+                    method = "Moroz")
+
+Kahan <- bind_cols(frsr(x = float_vector, NRmax = 10,
+                      tol = FLOAT_TOL, magic = 0x5f39d015,
+                      detail = TRUE, keep_params = TRUE),
+                    method = "Kahan")
+
+approximated <- bind_rows(Blinn, QuakeIII, Moroz, Kahan)
+rm(Blinn, Kahan, Moroz, QuakeIII)
 ## reference is generated here and not in C
 approximated$reference <- with(approximated, 1/sqrt(input))
 
@@ -17,7 +44,6 @@ blinncomp_labels <- c(
   "Kahan" = "Kahan\n(1999)")
 
 approximated %>%
-  filter(method %in% c("Blinn", "QuakeIII", "Kahan", "Moroz")) %>%
   ggplot(aes(x = input,
              y = (after_one - reference) / reference,
              color = method,
@@ -52,67 +78,9 @@ approximated %>%
                        limits = c(0.25, 1))
 
 
-### Good plot showing NR and naive choices
-### this is a rather fragile plot, with (relative to others in this repo)
-### not much DRYing out
-approximated %>%
-  filter(method %in% c("Naive_1_over_x", "Naive_x")) %>%
-  ggplot() + 
-  geom_ribbon(aes(x = input,
-                  ymin = pmin((guess - reference) / reference,
-                              (after_one - reference) / reference),
-                  ymax = pmax((guess - reference) / reference,
-                              (after_one - reference) / reference),
-                  fill = method),
-              alpha = 0.3) +
-  geom_line(aes(x = input,
-                y = (guess - reference) / reference,
-                color = method,
-                linetype = "Initial guess"),
-            linewidth = 1.4) +
-  geom_line(aes(x = input,
-                y = (after_one - reference) / reference,
-                color = method,
-                linetype = "After one iteration"),
-            linewidth = 1.2) +
-  scale_color_discrete(labels = c("1 / x", "x"), name = "Method for\nfirst guess") +
-  scale_linetype_manual(name = "Newton-Raphson",
-                        breaks = c("Initial guess", "After one iteration"),
-                        values = c("Initial guess" = "solid", 
-                                   "After one iteration" = "dotted")) +
-  guides(color = guide_legend(override.aes = list(linewidth = 1.5)),
-         fill = "none") +
-  geom_segment(data = . %>% 
-                 filter(case_when(
-                   method == "Naive_1_over_x" ~ round(input - 0.125, 3) %% 0.125 == 0,
-                   method == "Naive_x" ~ round(input - 0.0625, 3) %% 0.125 == 0
-                 ),
-                 round(input, 3) != 1,
-                 round(input, 3) != 0.25),
-               aes(x = input, 
-                   xend = input,
-                   y = (guess - reference) / reference, 
-                   yend = (after_one - reference) / reference,
-                   color = method),
-               linewidth = 0.5,
-               arrow = arrow(length = unit(0.2, "cm"), type = "closed"),
-               show.legend = FALSE) +
-  geom_vline(xintercept = 1, color = "black") + 
-  annotate("text", 
-           x = 1.05, 
-           y = -1, 
-           hjust = 0,
-           label = "At x = 1:\n1/x = x = 1/√x",
-           size = 6) +
-  ylim(-2, 1) + 
-  scale_x_continuous(limits = c(0.25, 1.5), breaks = c(0.5, 1, 1.5)) + 
-  labs(y = "Relative error",
-       title = "Poor guesses and the result of one Newton-Raphson step")
-
 ## simple bar plot of iterations
 approximated %>%
-  filter(method %in% c("Blinn", "QuakeIII", "Kahan", "Moroz")) %>%
-  ggplot() + geom_bar(aes(x = iterations, fill = method), position = "dodge") +
+  ggplot() + geom_bar(aes(x = iters, fill = method), position = "dodge") +
   labs(title = "All four approximations converge to a tight tolerance in two iterations",
        y = "Count of samples",
        x = "Iterations",
@@ -134,7 +102,7 @@ nrplot <- function(df = approximated, approx = "QuakeIII") {
     slice_min(abs(input - closest_target), n = 1) %>%
     ungroup()
   temp %>%
-    mutate(relErrGuess = (guess - reference) / reference,
+    mutate(relErrGuess = (initial - reference) / reference,
            relErrNR = (after_one - reference) / reference) %>% 
     ggplot(aes(x = input)) + 
     geom_ribbon(aes(ymin = pmin(relErrGuess, relErrNR),
@@ -154,7 +122,7 @@ nrplot <- function(df = approximated, approx = "QuakeIII") {
     geom_segment(data = segment_data,
                  aes(x = input, 
                      xend = input,
-                     y = (guess - reference) / reference, 
+                     y = (initial - reference) / reference, 
                      yend = (after_one - reference) / reference),
                  linewidth = 0.5,
                  arrow = arrow(length = unit(0.2, "cm"), type = "closed"),
@@ -162,8 +130,7 @@ nrplot <- function(df = approximated, approx = "QuakeIII") {
     xlim(0.25, 2) + 
     labs(y = "Relative error",
          title = "One iteration of Newton-Raphson markedly reduces error",
-         x = "Input") +
-    facet_wrap(~ method) -> output
+         x = "Input") -> output
   return(output)
 }
 nrplot()

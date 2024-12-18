@@ -1,6 +1,7 @@
 # utils.R
 
 # Load required packages
+library(tibble)
 library(tidyr)
 library(dplyr)
 library(ggplot2)
@@ -10,6 +11,7 @@ library(stringr)
 library(lpSolve)
 library(purrr)
 library(knitr)
+library(frsrr)
 
 #### Colors and such
 
@@ -32,6 +34,12 @@ false_categorical_25 <- c(
 )
 
 #### helper functions
+
+# Define the logStratifiedSampler function
+logStratifiedSampler <- function(min, max, n) {
+  exp(runif(n, log(min), log(max)))
+}
+
 # Slicing Function
 create_slices <- function(df, N, min_input = 0.5, max_input = 2.0) {
   slice_width <- (max_input - min_input) / N
